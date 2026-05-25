@@ -1,0 +1,13 @@
+{
+  "plugins": [
+    {
+      "name": "master-plugin",
+      "source": {
+        "type": "git-subdir",
+        "repo": "https://gitee.com/duan-jiaolong/my-plugins.git",
+        "branch": "main",
+        "path": "master-plugin"
+      }
+    }
+  ]
+}

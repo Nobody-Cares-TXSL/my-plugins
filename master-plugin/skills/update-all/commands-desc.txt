@@ -1,0 +1,57 @@
+# opencode command 中文描述映射
+# 格式: skill-name|中文描述
+# 脚本会优先使用这里的描述，如果没有则从 SKILL.md 提取英文原文并警告
+autoplan|自动全流程评审流水线，依次读取并执行 CEO、设计、工程、DX 四个评审 skill，输出综合评审报告
+benchmark|使用浏览器守护进程进行性能回归检测，建立页面加载时间、Core Web Vitals 和资源大小的基线，每次 PR 对比前后差异并追踪趋势
+benchmark-models|跨模型基准测试，将同一提示词分别发送给 Claude、GPT（通过 Codex CLI）、Gemini，对比输出质量和性能差异
+browse|无头浏览器工具，用于 QA 测试和站点验收，支持导航任意 URL、与页面元素交互、验证状态、截图标注、测试响应式布局和表单
+canary|部署后金丝雀监控，实时观察线上应用的控制台错误、性能回退和功能异常，检测到问题立即告警
+careful|危险命令安全防护，在执行 rm -rf、DROP TABLE、force-push、git reset --hard 等破坏性操作前强制确认，防止误操作
+codex|OpenAI Codex CLI 封装，提供三种模式：代码审查（独立 diff 审查）、对抗（用 Codex 挑战你的方案）、咨询（获取第二意见）
+context-restore|恢复之前通过 /context-save 保存的工作上下文，加载最近保存的状态（跨会话保留），快速恢复中断的工作
+context-save|保存当前工作上下文，捕获 git 状态、已做出的决策和剩余工作，供未来任意会话恢复使用
+cso|首席安全官模式，执行基础设施层面的安全审计：密钥考古、依赖供应链扫描、OWASP Top 10 检查、STRIDE 威胁建模
+design-consultation|设计咨询，理解你的产品、研究竞品和设计趋势，提出完整的设计系统方案，包括配色、排版、组件库和设计规范
+design-html|设计稿转码，将已确认的设计方案生成生产级 HTML/CSS，支持 Pretext 原生样式，输出可直接部署的代码
+design-review|视觉质量审计，发现并修复设计不一致问题：间距偏差、层级混乱、AI 生成痕迹（slop patterns）、对比度和可访问性缺陷
+design-shotgun|设计发散，生成多个 AI 设计方案变体，打开对比看板，收集结构化反馈，帮助快速探索不同设计方向
+devex-review|开发者体验在线审计，通过浏览器工具实际测试开发者体验：新贡献者导航、文档可用性、错误信息质量、首次构建体验
+document-generate|从代码生成缺失的文档，先分析代码库结构，再按 Diataxis 四象限（教程、操作指南、参考、解释）生成完整文档
+document-release|发版后文档同步，读取所有项目文档、交叉比对代码变更，按 Diataxis 框架补全文档缺口并更新 CHANGELOG
+freeze|将会话中的文件编辑限制到指定目录，阻止在允许范围外的任何 Edit 和 Write 操作，防止误改不相关文件
+gstack-upgrade|将 gstack 升级到最新版本，自动检测全局安装还是项目内安装，执行升级并验证结果
+guard|完全安全模式，同时启用危险命令警告和目录锁定编辑，组合 /careful（警告破坏性操作）和 /freeze（限制编辑范围）
+health|代码质量仪表盘，封装项目现有的类型检查、lint、测试运行器和死代码检测工具，给出综合健康评分
+investigate|系统化调试与根因分析，四阶段流程：调查现象、分析线索、提出假设、验证结论，自动冻结目录防止乱改
+land-and-deploy|合并 PR 并部署工作流，依次执行合并分支、等待 CI 通过、部署到生产环境、通过金丝雀监控验证线上健康
+landing-report|只读队列看板，显示当前工作区中哪些版本槽位已被占用、哪些 PR 正在排队等待合并和部署
+learn|管理跨会话的项目经验，查看、搜索、修剪和导出 gstack 在各次会话中积累的 learnings
+make-pdf|将 Markdown 文件转为出版级 PDF，支持标准页边距、智能分页、代码块语法高亮和目录生成
+office-hours|YC 创业辅导模式，提出六个 forcing questions 暴露需求现实、验证市场假设、框定产品方向，强制等待人工决策后才继续
+open-gstack-browser|启动 GStack 可视化浏览器，打开一个 AI 可控制的 Chromium 窗口，用于网页交互和实时调试
+pair-agent|将远程 AI 代理与你的浏览器配对，一键生成配对密钥和操作指南，实现 AI 辅助的浏览器操作
+plan-ceo-review|CEO/创始人视角的计划评审，重新审视问题本质、寻找十星级产品方案、挑战假设前提、评估范围合理性
+plan-design-review|设计师视角的计划评审，交互式评估每个设计维度（信息架构、交互流程、视觉层级、一致性），给出 0-10 评分和改进建议
+plan-devex-review|开发者体验计划评审，探索开发者画像、对标竞品 DX、评估文档和工具链质量，给出改进路线图
+plan-eng-review|工程经理视角的计划评审，锁定执行方案——架构设计、数据流、边界 case、测试计划、技术债务评估
+plan-tune|调整 gstack 的提问敏感度和开发者画像设置，回顾历史会话数据并优化交互参数
+qa|系统化 QA 测试 Web 应用并修复发现的 bug，运行完整测试流程后迭代修复，直到所有问题解决
+qa-only|只报告 QA 测试结果，不进行修复。系统化测试 Web 应用并输出结构化报告，包含 bug 清单、严重程度和复现步骤
+retro|每周工程回顾，分析提交历史、工作模式和代码质量指标，按成员拆解贡献度并提供改进建议
+review|PR 合并前代码审查，检查 SQL 安全性、LLM 信任边界、性能风险、错误处理和代码风格问题
+setup-browser-cookies|从真实的 Chromium 浏览器导入 Cookie 到无头浏览器会话，支持选择特定站点和域名，解决登录态问题
+setup-deploy|配置部署参数，自动检测部署平台（Fly.io、Render、Vercel 等），引导完成环境变量和部署设置
+setup-gbrain|为当前编码代理设置 gbrain 联邦记忆，安装 CLI、初始化本地 PGLite 或 Supabase 数据库、配置同步策略
+ship|完整发版工作流：检测并合并主分支、运行测试、审查 diff、更新 VERSION、修改 CHANGELOG、创建 PR
+skillify|将最近一次成功的 /scrape 抓取流程固化为永久的浏览器技能文件，后续可直接调用而无需重新抓取
+sync-gbrain|同步 gbrain 与当前仓库代码，更新 CLAUDE.md 中的代理搜索指引，确保记忆索引与代码库保持一致
+unfreeze|解除由 /freeze 设置的目录编辑限制，恢复对所有目录的编辑权限
+agent-reach|多平台互联网搜索与交互工具，覆盖小红书、抖音、微博、Twitter/X、B 站、V2EX、Reddit、LinkedIn、YouTube、GitHub 等 17 个平台，支持零配置快速使用
+find-skills|发现和安装可复用的 AI 代理技能，搜索开源技能生态，按安装量过滤推荐
+notebooklm|Google NotebookLM API 集成，支持创建笔记本、添加来源、生成播客音频和所有类型的内容产物，并提供多格式下载
+opencli-adapter-author|为网站编写 OpenCLI 适配器，定义抓取逻辑、数据提取规则和输出格式，扩展 OpenCLI 的站点覆盖范围
+opencli-autofix|自动修复损坏的 OpenCLI 适配器，当网站 DOM 或 API 变更导致适配器失败时，自动诊断并修补
+opencli-browser|通过 opencli 驱动 Chrome 进行网页交互，支持截图、DOM 操作、网络请求拦截和页面状态检查
+opencli-usage|OpenCLI 文档和使用指南，查看可用的站点、命令列表、安装状态和配置方法
+smart-search|智能搜索路由器，根据查询意图自动选择最佳搜索源（grok/doubao/gemini AI 源 + 垂直平台专用源），支持中文平台精确搜索
+scrape|从网页提取数据，首次调用原型化流程返回JSON，后续匹配意图路由到固化技能（~200ms）。只读，交互操作用 /automate
