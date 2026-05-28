@@ -4,7 +4,7 @@
       "name": "master-plugin",
       "source": {
         "type": "git-subdir",
-        "repo": "https://gitee.com/duan-jiaolong/my-plugins.git",
+        "repo": "https://github.com/Nobody-Cares-TXSL/my-plugins",
         "branch": "main",
         "path": "master-plugin"
       }
