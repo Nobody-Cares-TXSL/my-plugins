@@ -14,7 +14,7 @@ allowed-tools:
 
 ## 任务追踪
 
-开始前，用 TaskCreate 创建以下 9 个任务，按顺序逐步 TaskUpdate 为 in_progress → completed：
+开始前，用 TaskCreate 创建以下 10 个任务，按顺序逐步 TaskUpdate 为 in_progress → completed：
 
 1. **版本快照（更新前）** — snapshot.sh before，保存 UPDATE_BEFORE
 2. **Claude Code 插件** — update-plugins.sh

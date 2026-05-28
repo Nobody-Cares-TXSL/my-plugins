@@ -24,7 +24,8 @@ rm -rf "$TMPDIR_AR"
 mkdir -p "$TMPDIR_AR"
 git clone --depth 1 https://github.com/Panniantong/Agent-Reach.git "$TMPDIR_AR" 2>&1
 
-rm -rf "$REACH_SKILL"/*
+mkdir -p "$REACH_SKILL"
+rm -rf "${REACH_SKILL:?}"/*
 cp -r "$TMPDIR_AR/agent_reach/skill/"* "$REACH_SKILL/"
 
 echo ""

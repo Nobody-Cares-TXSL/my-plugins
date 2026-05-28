@@ -9,7 +9,8 @@ OCCONFIG="$HOME/.config/opencode/opencode.jsonc"
 GSTACK="$HOME/.claude/skills/gstack"
 CLAUDE_SKILLS="$HOME/.claude/skills"
 AGENTS_SKILLS="$HOME/.agents/skills"
-DESC_MAP="$HOME/.claude/skills/update-all/commands-desc.txt"
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
+DESC_MAP="$SCRIPT_DIR/../commands-desc.txt"
 
 if [ ! -f "$OCCONFIG" ]; then
   echo "  opencode config not found at $OCCONFIG, skipping"
@@ -62,7 +63,7 @@ cut -f1 "$TMP/all_entries.txt" > "$TMP/all_names.txt"
 DESC_MAP_DIR="$(dirname "$DESC_MAP")"
 new_entries=()
 while IFS=$'\t' read -r name path; do
-  grep -q "^${name}|" "$DESC_MAP" 2>/dev/null || new_entries+=("$name"$'\t'"$path")
+  grep -qF "${name}|" "$DESC_MAP" 2>/dev/null || new_entries+=("$name"$'\t'"$path")
 done < "$TMP/all_entries.txt"
 
 if [ ${#new_entries[@]} -gt 0 ]; then
@@ -83,7 +84,8 @@ ${translate_input}"
   translation_result=$(claude -p "$prompt" 2>/dev/null)
 
   if [ -n "$translation_result" ]; then
-    echo "$translation_result" >> "$DESC_MAP"
+    # 只保留符合 name|desc 格式的行，过滤掉 Claude 的对话性输出
+    echo "$translation_result" | grep '|' >> "$DESC_MAP"
     # 统计成功追加的数量
     added=$(echo "$translation_result" | grep -c '|')
     echo "  Added $added description(s) to commands-desc.txt"
@@ -160,8 +162,8 @@ for name in all_names:
     else:
         skipped.append(name)
 
-# 写入
-data = {'\$schema': 'https://opencode.ai/config.json', 'command': commands}
+# 写入（保留原有所有顶层 key，只更新 command）
+data['command'] = commands
 with open(config_path, 'w') as f:
     json.dump(data, f, indent=2, ensure_ascii=False)
 

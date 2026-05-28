@@ -23,8 +23,15 @@ if [ -f "$PLUGINS" ]; then
   echo "--- Claude Code Plugins ---"
   python3 -c "
 import json, sys
-plugins = json.load(open('$PLUGINS'))['plugins']
-enabled = set(json.load(open('$SETTINGS')).get('enabledPlugins', {}).keys())
+plugins_path = '$PLUGINS'
+settings_path = '$SETTINGS'
+try:
+    with open(plugins_path) as f:
+        plugins = json.load(f)['plugins']
+except (json.JSONDecodeError, KeyError):
+    print('  Error: installed_plugins.json is malformed or missing plugins key')
+    sys.exit(0)
+enabled = set(json.load(open(settings_path)).get('enabledPlugins', {}).keys())
 for k, v in sorted(plugins.items()):
     ver = v[0]['version']
     status = 'enabled' if k in enabled else 'disabled'

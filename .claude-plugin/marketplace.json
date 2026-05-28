@@ -1,13 +1,20 @@
 {
+  "name": "my-plugins",
+  "description": "个人 Claude Code 插件集合",
+  "owner": {
+    "name": "Nobody-Cares-TXSL"
+  },
   "plugins": [
     {
       "name": "master-plugin",
+      "description": "个人工具集：代码解释、规范提交、智能阅读、一键更新工具链",
       "source": {
-        "type": "git-subdir",
-        "repo": "https://github.com/Nobody-Cares-TXSL/my-plugins",
-        "branch": "main",
-        "path": "master-plugin"
-      }
+        "source": "git-subdir",
+        "url": "Nobody-Cares-TXSL/my-plugins",
+        "path": "master-plugin",
+        "ref": "main"
+      },
+      "homepage": "https://github.com/Nobody-Cares-TXSL/my-plugins"
     }
   ]
 }
