@@ -21,6 +21,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
         ├── update-all/SKILL.md         #   工具链一键更新
         │   ├── commands-desc.txt       #     opencode 命令中文描述映射
         │   └── scripts/*.sh            #     各组件更新脚本
+        ├── auto_answer/SKILL.md        #   基于 opencli browser 的自动答题
         └── update-my-plugins/SKILL.md  #   优化技能 → 提交推送 → 更新本地
 ```
 
