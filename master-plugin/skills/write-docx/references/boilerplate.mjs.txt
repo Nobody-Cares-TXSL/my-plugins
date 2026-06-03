@@ -1,0 +1,137 @@
+// ============================================================
+// docx.js 最小脚手架 — 复制后替换内容即可使用
+// ============================================================
+import {
+  Document, Packer, Paragraph, TextRun, ImageRun,
+  Table, TableRow, TableCell,
+  WidthType, AlignmentType, BorderStyle, VerticalAlign, HeightRule,
+  convertMillimetersToTwip,
+} from "docx";
+import { readFileSync, existsSync, writeFileSync } from "fs";
+import { resolve, dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// ===== 字体预设 =====
+const FONT_SONG = { ascii: "Times New Roman", eastAsia: "宋体", hAnsi: "Times New Roman" };
+const FONT_HEI  = { ascii: "Times New Roman", eastAsia: "黑体", hAnsi: "Times New Roman" };
+
+// ===== 行距与缩进 =====
+const LINE_20PT = { line: 20 * 20, lineRule: "exact" };
+const FIRST_INDENT = { firstLine: convertMillimetersToTwip(9.6) };
+
+// ===== 页面设置 =====
+const PAGE_PROPS = {
+  size: { width: convertMillimetersToTwip(210), height: convertMillimetersToTwip(297) },
+  margin: {
+    top: convertMillimetersToTwip(28), bottom: convertMillimetersToTwip(22),
+    left: convertMillimetersToTwip(28), right: convertMillimetersToTwip(22),
+  },
+};
+
+// ===== 基础组件 =====
+function r(text, { font = FONT_SONG, size = 24, bold = false } = {}) {
+  return new TextRun({ text, font, size, bold });
+}
+function bodyPara(text) {
+  return new Paragraph({ children: [r(text)], spacing: LINE_20PT, indent: FIRST_INDENT, alignment: AlignmentType.JUSTIFIED });
+}
+function h1(text) {
+  return new Paragraph({ children: [r(text, { font: FONT_HEI, size: 32, bold: true })], spacing: { before: 18 * 20, after: 9 * 20, ...LINE_20PT } });
+}
+function h2(text) {
+  return new Paragraph({ children: [r(text, { font: FONT_HEI, size: 28, bold: true })], spacing: { before: 36 * 20, after: 36 * 20, ...LINE_20PT } });
+}
+function figCap(text) {
+  return new Paragraph({ children: [r(text, { font: FONT_HEI, size: 21 })], alignment: AlignmentType.CENTER, spacing: LINE_20PT });
+}
+function emptyLine(count = 1) {
+  return Array.from({ length: count }, () => new Paragraph({ children: [], spacing: { line: 317.5, lineRule: "exact" } }));
+}
+function tocLine(title) {
+  return new Paragraph({ children: [r(title, { font: FONT_SONG, size: 24 })], alignment: AlignmentType.DISTRIBUTE, spacing: { before: 127, after: 127, ...LINE_20PT } });
+}
+
+// ===== 图片插入 =====
+function loadPng(name) {
+  const p = resolve(__dirname, "figures", name);
+  if (!existsSync(p)) throw new Error(`图片不存在: ${p}`);
+  return readFileSync(p);
+}
+function imageSize(buf) {
+  return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
+}
+function insertFigure(pngName, caption, widthMm = 140) {
+  const buf = loadPng(pngName), sz = imageSize(buf);
+  const w = Math.round(widthMm / 25.4 * 96), h = Math.round(w * (sz.height / sz.width));
+  return [
+    new Paragraph({ children: [new ImageRun({ data: buf, transformation: { width: w, height: h }, type: "png" })], alignment: AlignmentType.CENTER, spacing: { before: 120, after: 60 } }),
+    figCap(caption),
+  ];
+}
+
+// ===== 三线表 =====
+function makeTable(headers, rows) {
+  const thin = { style: BorderStyle.SINGLE, size: 1, color: "000000" };
+  const none = { style: BorderStyle.NONE, size: 0, color: "FFFFFF" };
+  const hB = { top: thin, bottom: thin, left: none, right: none };
+  const bB = { top: none, bottom: none, left: none, right: none };
+  const lB = { top: none, bottom: thin, left: none, right: none };
+  function cell(text, borders = bB) {
+    return new TableCell({
+      children: [new Paragraph({ children: [new TextRun({ text, font: FONT_SONG, size: 21 })], alignment: AlignmentType.CENTER, spacing: { before: 40, after: 40 } })],
+      verticalAlign: VerticalAlign.CENTER, borders,
+    });
+  }
+  return new Table({
+    rows: [
+      new TableRow({ children: headers.map(h => cell(h, hB)), tableHeader: true }),
+      ...rows.map((row, i) => new TableRow({ children: row.map(c => cell(c, i === rows.length - 1 ? lB : bB)) })),
+    ],
+    width: { size: 100, type: WidthType.PERCENTAGE },
+  });
+}
+
+// ============================================================
+// 文档内容 — 以下为示例，按需替换
+// ============================================================
+
+const coverChildren = [
+  ...emptyLine(6),
+  new Paragraph({ children: [r("文档标题", { font: FONT_HEI, size: 84, bold: true })], alignment: AlignmentType.CENTER, spacing: { line: 635, lineRule: "exact" } }),
+  ...emptyLine(2),
+  new Table({
+    rows: [["姓       名 ：", "张三"], ["学       号 ：", "XXXXXXXXXX"]].map(([label, value]) =>
+      new TableRow({
+        children: [
+          new TableCell({ children: [new Paragraph({ children: [r(label, { font: FONT_SONG, size: 28, bold: true })], alignment: AlignmentType.CENTER })], width: { size: 2345, type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER }),
+          new TableCell({ children: [new Paragraph({ children: [r(value, { font: FONT_SONG, size: 28, bold: true })], alignment: AlignmentType.CENTER })], width: { size: 3394, type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER }),
+        ],
+        height: { value: 452, rule: HeightRule.EXACT },
+      })
+    ),
+    width: { size: 5739, type: WidthType.DXA },
+  }),
+  ...emptyLine(2),
+  new Paragraph({ children: [r("二〇二六年六月", { font: FONT_SONG, size: 32 })], indent: { firstLine: convertMillimetersToTwip(49) } }),
+];
+
+const contentChildren = [
+  h1("1 第一章"),
+  bodyPara("正文内容示例。"),
+  makeTable(["列1", "列2", "列3"], [["a", "b", "c"], ["d", "e", "f"]]),
+];
+
+// ===== 组装输出 =====
+const doc = new Document({
+  styles: { default: { document: { run: { font: FONT_SONG, size: 24 } } } },
+  sections: [
+    { properties: { page: PAGE_PROPS }, children: coverChildren },
+    { properties: { page: PAGE_PROPS }, children: contentChildren },
+  ],
+});
+
+const outPath = resolve(__dirname, "output.docx");
+writeFileSync(outPath, await Packer.toBuffer(doc));
+console.log(`[OK] ${outPath}`);
