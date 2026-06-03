@@ -41,20 +41,29 @@ allowed-tools:
 3. 修改遵循现有风格和格式
 4. 如有附属文件（如 scripts/、commands-desc.txt 等），一并检查是否需要同步修改
 
-### 3. 更新版本号
+### 3. 同步仓库文档
+
+检查本次优化是否影响仓库文档（`CLAUDE.md` 和 `README.md`），如有则同步更新：
+
+- **README.md**：检查组件表中的描述是否需要更新（如 description 变更、新增/删除附属文件）
+- **CLAUDE.md**：检查目录树和说明注释是否需要更新（如新增脚本、references 文件等）
+
+读取两个文档，按需修改。若本次优化不涉及文档变更，跳过此步。
+
+### 4. 更新版本号
 
 读取 `.claude-plugin/plugin.json`，将 `version` 字段的 PATCH 版本号 +1（如 `1.0.1` → `1.0.2`），写回文件。必须 bump 版本号，否则 Claude Code CLI 因缓存键不变而无法检测到更新。
 
-### 4. 提交推送
+### 5. 提交推送
 
 调用 `/push` 命令进行提交推送：
 
 推送成功后继续下一步。
 
-### 5. 更新本地插件
+### 6. 更新本地插件
 
 ```bash
-claude plugin update master-plugin 2>&1
+claude plugin update master-plugin@my-plugins 2>&1
 ```
 
 如果更新失败（如已是最新版本），忽略错误继续。

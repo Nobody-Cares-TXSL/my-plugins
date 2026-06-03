@@ -22,7 +22,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
         │   ├── commands-desc.txt       #     opencode 命令中文描述映射
         │   └── scripts/*.sh            #     各组件更新脚本
         ├── auto_answer/SKILL.md        #   基于 opencli browser 的自动答题
-        └── update-my-plugins/SKILL.md  #   优化技能 → 提交推送 → 更新本地
+        ├── write-docx/SKILL.md         #   基于 docx.js 生成中文 Word 文档
+        │   └── references/              #     docx 格式指南与踩坑速查
+        └── update-my-plugins/SKILL.md  #   优化技能 → 同步文档 → 提交推送 → 更新本地
 ```
 
 ## 常用命令
@@ -50,7 +52,7 @@ claude plugin update master-plugin
 - SKILL.md frontmatter：`description` 必填，`allowed-tools` 按需声明
 - push command 依赖约定式提交规范（Conventional Commits），需用户两次确认（commit + push）
 - update-all 的 shell 脚本位于 `skills/update-all/scripts/`，使用 `set -euo pipefail`
-- update-my-plugins 会调用 push command，再执行 `claude plugin update master-plugin`
+- update-my-plugins 流程：优化技能 → 同步 CLAUDE.md/README.md → bump 版本 → push → 更新本地插件
 - 所有需要网络的脚本设置 `http_proxy/https_proxy=http://127.0.0.1:7890`
 
 ## 外部工具链路径（update-all 维护）
