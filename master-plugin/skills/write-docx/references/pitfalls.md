@@ -17,3 +17,9 @@
 | 13 | 标题也缩进了 | bodyPara 的 indent 用在了标题上 | 标题段落不加 indent |
 | 14 | 表格内容左对齐 | cell 段落缺 alignment | Paragraph 加 `alignment: AlignmentType.CENTER` |
 | 15 | 页面尺寸不对 | 用了硬编码 twip 值 | 用 `convertMillimetersToTwip()` 转换 |
+| 16 | puppeteer 截图公式被水平压缩 | `page.screenshot()` API 有渲染 bug，deviceScaleFactor 无效 | 用 Chrome 原生 `--headless --screenshot` 命令行截图 |
+| 17 | 模板字符串中 JS 表达式没被求值 | 反引号内写了 `' + expr + '`，这是字面文本 | 用 `${expr}` 模板插值 |
+| 18 | 图片路径被重复拼接 | `loadPng(join(EQ_DIR, name))` 但 loadPng 内部又 `join(IMAGES, name)` | loadPng 只接受文件名，或直接用 `readFileSync(join(EQ_DIR, name))` |
+| 19 | 正则匹配 LaTeX `\\` 失败 | JS 正则中 `\\\\` 匹配一个 `\`，不是 `\\`。要匹配两个反斜杠需要 `/\\\\/g` | 用 Node 脚本打印验证：`console.log(/\\\\/g.test("\\\\"))` |
+| 20 | Chrome 截图大量空白 | 截取整个视口但公式只占一小块 | ImageMagick `convert -trim +repage -bordercolor white -border 16x16` |
+| 21 | bmatrix 小矩阵方括号太小 | KaTeX 的 `\begin{bmatrix}` 不自动扩展方括号 | 用 `\left[\vphantom{\frac{0}{0}}\begin{array}{cc}...\end{array}\right]`，自动检测列数 |

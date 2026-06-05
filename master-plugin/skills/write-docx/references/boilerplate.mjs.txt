@@ -1,86 +1,102 @@
-// ============================================================
-// docx.js 最小脚手架 — 复制后替换内容即可使用
-// ============================================================
+// docx.js 脚手架 — 展示所有常用模式，具体格式值按需求调整
+// 字号: pt × 2 = half-pt (size 字段)
+// 行距: pt × 20 = twip (line 字段, 配 lineRule)
+// 边距: convertMillimetersToTwip(mm)
+// __dirname 替换为 import.meta.dirname（Node ≥21.2）
 import {
   Document, Packer, Paragraph, TextRun, ImageRun,
   Table, TableRow, TableCell,
   WidthType, AlignmentType, BorderStyle, VerticalAlign, HeightRule,
+  Header, Footer, PageNumber,
   convertMillimetersToTwip,
 } from "docx";
-import { readFileSync, existsSync, writeFileSync } from "fs";
-import { resolve, dirname } from "path";
-import { fileURLToPath } from "url";
+import { readFileSync, existsSync, writeFileSync } from "node:fs";
+import { resolve, join } from "node:path";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-
-// ===== 字体预设 =====
+// === 字体模式 ===
 const FONT_SONG = { ascii: "Times New Roman", eastAsia: "宋体", hAnsi: "Times New Roman" };
 const FONT_HEI  = { ascii: "Times New Roman", eastAsia: "黑体", hAnsi: "Times New Roman" };
 
-// ===== 行距与缩进 =====
-const LINE_20PT = { line: 20 * 20, lineRule: "exact" };
-const FIRST_INDENT = { firstLine: convertMillimetersToTwip(9.6) };
+// === 行距/缩进 ===
+const LINE = { line: 20 * 20, lineRule: "exact" };  // 20pt 固定行距
+const INDENT = { firstLine: convertMillimetersToTwip(8.47) }; // ≈2字符
 
-// ===== 页面设置 =====
-const PAGE_PROPS = {
+// === 页面 ===
+const PAGE = {
   size: { width: convertMillimetersToTwip(210), height: convertMillimetersToTwip(297) },
   margin: {
-    top: convertMillimetersToTwip(28), bottom: convertMillimetersToTwip(22),
-    left: convertMillimetersToTwip(28), right: convertMillimetersToTwip(22),
+    top: convertMillimetersToTwip(XX), bottom: convertMillimetersToTwip(XX),
+    left: convertMillimetersToTwip(XX), right: convertMillimetersToTwip(XX),
+    header: convertMillimetersToTwip(XX), footer: convertMillimetersToTwip(XX),
   },
 };
 
-// ===== 基础组件 =====
-function r(text, { font = FONT_SONG, size = 24, bold = false } = {}) {
-  return new TextRun({ text, font, size, bold });
-}
-function bodyPara(text) {
-  return new Paragraph({ children: [r(text)], spacing: LINE_20PT, indent: FIRST_INDENT, alignment: AlignmentType.JUSTIFIED });
-}
-function h1(text) {
-  return new Paragraph({ children: [r(text, { font: FONT_HEI, size: 32, bold: true })], spacing: { before: 18 * 20, after: 9 * 20, ...LINE_20PT } });
-}
-function h2(text) {
-  return new Paragraph({ children: [r(text, { font: FONT_HEI, size: 28, bold: true })], spacing: { before: 36 * 20, after: 36 * 20, ...LINE_20PT } });
-}
-function figCap(text) {
-  return new Paragraph({ children: [r(text, { font: FONT_HEI, size: 21 })], alignment: AlignmentType.CENTER, spacing: LINE_20PT });
-}
-function emptyLine(count = 1) {
-  return Array.from({ length: count }, () => new Paragraph({ children: [], spacing: { line: 317.5, lineRule: "exact" } }));
-}
-function tocLine(title) {
-  return new Paragraph({ children: [r(title, { font: FONT_SONG, size: 24 })], alignment: AlignmentType.DISTRIBUTE, spacing: { before: 127, after: 127, ...LINE_20PT } });
+// === TextRun 工厂 ===
+function r(text, { font = FONT_SONG, size = 24, bold = false, italics = false, subScript = false } = {}) {
+  return new TextRun({ text, font, size, bold, italics, subScript });
 }
 
-// ===== 图片插入 =====
-function loadPng(name) {
-  const p = resolve(__dirname, "figures", name);
-  if (!existsSync(p)) throw new Error(`图片不存在: ${p}`);
-  return readFileSync(p);
+// === 段落模式 ===
+// 正文：固定行距 + 首行缩进 + 两端对齐。children 接受 TextRun 数组
+function bodyPara(children, indent = true) {
+  return new Paragraph({
+    children: Array.isArray(children) ? children : [children],
+    spacing: LINE, alignment: AlignmentType.JUSTIFIED,
+    ...(indent ? { indent: INDENT } : {}),
+  });
 }
+// 章标题：居中 + 大字号
+function chapterTitle(text) {
+  return new Paragraph({
+    children: [r(text, { font: FONT_HEI, size: 32, bold: true })],
+    spacing: { before: 800, after: 400, ...LINE }, alignment: AlignmentType.CENTER,
+  });
+}
+// 节标题：左对齐 + 中字号
+function sectionTitle(text) {
+  return new Paragraph({
+    children: [r(text, { font: FONT_HEI, size: 28, bold: true })],
+    spacing: { before: 200, after: 200, ...LINE }, alignment: AlignmentType.JUSTIFIED,
+  });
+}
+// 空行（封面留白用）
+function emptyLine(n = 1) {
+  return Array.from({ length: n }, () => new Paragraph({ children: [], spacing: LINE }));
+}
+
+// === 页眉页脚 ===
+function makeHeader(text) {
+  return new Header({ children: [new Paragraph({ children: [r(text, { size: 18 })], alignment: AlignmentType.CENTER })] });
+}
+function makeFooter() {
+  return new Footer({ children: [new Paragraph({ children: [new TextRun({ children: [PageNumber.CURRENT], font: FONT_SONG, size: 18 })], alignment: AlignmentType.CENTER })] });
+}
+
+// === 图片模式：读 PNG 元数据等比缩放 ===
 function imageSize(buf) {
   return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
 }
-function insertFigure(pngName, caption, widthMm = 140) {
-  const buf = loadPng(pngName), sz = imageSize(buf);
-  const w = Math.round(widthMm / 25.4 * 96), h = Math.round(w * (sz.height / sz.width));
+function insertFigure(buf, caption, widthMm = 140) {
+  const sz = imageSize(buf);
+  const w = Math.round(widthMm / 25.4 * 96);
+  const h = Math.round(w * (sz.height / sz.width));
   return [
-    new Paragraph({ children: [new ImageRun({ data: buf, transformation: { width: w, height: h }, type: "png" })], alignment: AlignmentType.CENTER, spacing: { before: 120, after: 60 } }),
-    figCap(caption),
+    new Paragraph({ children: [new ImageRun({ data: buf, transformation: { width: w, height: h }, type: "png" })], alignment: AlignmentType.CENTER }),
+    new Paragraph({ children: [r(caption, { font: FONT_HEI, size: 21 })], alignment: AlignmentType.CENTER }),
   ];
 }
 
-// ===== 三线表 =====
+// === 三线表模式：按行分配 top/bottom 边框 ===
 function makeTable(headers, rows) {
-  const thin = { style: BorderStyle.SINGLE, size: 1, color: "000000" };
-  const none = { style: BorderStyle.NONE, size: 0, color: "FFFFFF" };
-  const hB = { top: thin, bottom: thin, left: none, right: none };
-  const bB = { top: none, bottom: none, left: none, right: none };
-  const lB = { top: none, bottom: thin, left: none, right: none };
+  const THICK = { style: BorderStyle.SINGLE, size: 12, color: "000000" }; // 1/8 pt 单位
+  const THIN  = { style: BorderStyle.SINGLE, size: 6,  color: "000000" };
+  const NONE  = { style: BorderStyle.NONE,   size: 0,  color: "FFFFFF" };
+  const hB = { top: THICK, bottom: THIN,  left: NONE, right: NONE };
+  const bB = { top: NONE,  bottom: NONE,  left: NONE, right: NONE };
+  const lB = { top: NONE,  bottom: THICK, left: NONE, right: NONE };
   function cell(text, borders = bB) {
     return new TableCell({
-      children: [new Paragraph({ children: [new TextRun({ text, font: FONT_SONG, size: 21 })], alignment: AlignmentType.CENTER, spacing: { before: 40, after: 40 } })],
+      children: [new Paragraph({ children: [r(text, { size: 21 })], alignment: AlignmentType.CENTER })],
       verticalAlign: VerticalAlign.CENTER, borders,
     });
   }
@@ -93,45 +109,54 @@ function makeTable(headers, rows) {
   });
 }
 
-// ============================================================
-// 文档内容 — 以下为示例，按需替换
-// ============================================================
-
-const coverChildren = [
-  ...emptyLine(6),
-  new Paragraph({ children: [r("文档标题", { font: FONT_HEI, size: 84, bold: true })], alignment: AlignmentType.CENTER, spacing: { line: 635, lineRule: "exact" } }),
-  ...emptyLine(2),
-  new Table({
-    rows: [["姓       名 ：", "张三"], ["学       号 ：", "XXXXXXXXXX"]].map(([label, value]) =>
+// === 封面信息表模式：Table + HeightRule.EXACT 对齐 ===
+function makeCoverTable(info) {
+  return new Table({
+    rows: info.map(([label, value]) =>
       new TableRow({
         children: [
-          new TableCell({ children: [new Paragraph({ children: [r(label, { font: FONT_SONG, size: 28, bold: true })], alignment: AlignmentType.CENTER })], width: { size: 2345, type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER }),
-          new TableCell({ children: [new Paragraph({ children: [r(value, { font: FONT_SONG, size: 28, bold: true })], alignment: AlignmentType.CENTER })], width: { size: 3394, type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER }),
+          new TableCell({ children: [new Paragraph({ children: [r(label, { size: 28, bold: true })], alignment: AlignmentType.CENTER })], width: { size: 2345, type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER }),
+          new TableCell({ children: [new Paragraph({ children: [r(value, { size: 28, bold: true })], alignment: AlignmentType.CENTER })], width: { size: 3394, type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER }),
         ],
         height: { value: 452, rule: HeightRule.EXACT },
       })
     ),
     width: { size: 5739, type: WidthType.DXA },
-  }),
-  ...emptyLine(2),
-  new Paragraph({ children: [r("二〇二六年六月", { font: FONT_SONG, size: 32 })], indent: { firstLine: convertMillimetersToTwip(49) } }),
-];
+  });
+}
 
-const contentChildren = [
-  h1("1 第一章"),
-  bodyPara("正文内容示例。"),
-  makeTable(["列1", "列2", "列3"], [["a", "b", "c"], ["d", "e", "f"]]),
-];
+// === 公式模式：预渲染 PNG + 无边框表格实现居中+序号 ===
+function equationPara(pngBuf, w, h, eqNum) {
+  const NB = { style: BorderStyle.NONE, size: 0, color: "FFFFFF" };
+  const borders = { top: NB, bottom: NB, left: NB, right: NB };
+  return new Table({
+    rows: [new TableRow({
+      children: [
+        new TableCell({ children: [new Paragraph({ children: [new ImageRun({ data: pngBuf, transformation: { width: w, height: h }, type: "png" })], alignment: AlignmentType.CENTER })], width: { size: 5800, type: WidthType.DXA }, borders, verticalAlign: VerticalAlign.CENTER }),
+        new TableCell({ children: [new Paragraph({ children: [r(`(${eqNum})`)], alignment: AlignmentType.RIGHT })], width: { size: 1200, type: WidthType.DXA }, borders, verticalAlign: VerticalAlign.CENTER }),
+      ],
+    })],
+    width: { size: 7000, type: WidthType.DXA },
+  });
+}
 
-// ===== 组装输出 =====
+// === 组装 ===
 const doc = new Document({
   styles: { default: { document: { run: { font: FONT_SONG, size: 24 } } } },
   sections: [
-    { properties: { page: PAGE_PROPS }, children: coverChildren },
-    { properties: { page: PAGE_PROPS }, children: contentChildren },
+    { properties: { page: PAGE }, children: [/* 封面 */] },
+    { properties: { page: PAGE }, children: [/* 摘要 */] },
+    // 每章独立 section（支持不同页眉/页码起始）
+    ...chapters.map((ch, i) => ({
+      properties: {
+        page: { ...PAGE, ...(i === 0 ? { pageNumbers: { start: 1 } } : {}) },
+        oddAndEvenHeaders: true,
+      },
+      headers: { default: makeHeader("论文题目"), even: makeHeader(ch.title) },
+      footers: { default: makeFooter() },
+      children: ch.children,
+    })),
   ],
 });
 
-const outPath = resolve(__dirname, "output.docx");
-writeFileSync(outPath, await Packer.toBuffer(doc));
-console.log(`[OK] ${outPath}`);
+writeFileSync("output.docx", await Packer.toBuffer(doc));

@@ -1,126 +1,80 @@
 # 封面与文档结构
 
-## 封面：表格化排版
+## 封面信息对齐
 
-封面信息（姓名、学号等）用 Table 排列，比普通段落更整齐。
+### 技巧：用 Table + 固定行高
 
-```javascript
-const coverChildren = [
-  ...emptyLine(6),
-  new Paragraph({
-    children: [r("《人工智能》课程设计", { font: FONT_HEI, size: 84, bold: true })],
-    alignment: AlignmentType.CENTER,
-    spacing: { line: 635, lineRule: "exact" },
-  }),
-  ...emptyLine(2),
-  new Paragraph({
-    children: [
-      r("题目：", { font: FONT_HEI, size: 32, bold: true }),
-      r("你的标题", { font: FONT_HEI, size: 32, bold: true }),
-    ],
-    spacing: { line: 400, lineRule: "exact" },
-  }),
-  ...emptyLine(2),
-  // 学生信息表格
-  new Table({
-    rows: [
-      ["学 生 姓 名 ：", "张三"],
-      ["学       号 ：", "XXXXXXXXXX"],
-      ["学       院 ：", "计算机学院"],
-      ["专 业 班 级 ：", "计算机230X班"],
-    ].map(([label, value]) =>
-      new TableRow({
-        children: [
-          new TableCell({
-            children: [new Paragraph({
-              children: [r(label, { font: FONT_SONG, size: 28, bold: true })],
-              alignment: AlignmentType.CENTER,
-            })],
-            width: { size: 2345, type: WidthType.DXA },
-            verticalAlign: VerticalAlign.CENTER,
-          }),
-          new TableCell({
-            children: [new Paragraph({
-              children: [r(value, { font: FONT_SONG, size: 28, bold: true })],
-              alignment: AlignmentType.CENTER,
-            })],
-            width: { size: 3394, type: WidthType.DXA },
-            verticalAlign: VerticalAlign.CENTER,
-          }),
-        ],
-        height: { value: 452, rule: HeightRule.EXACT },
-      })
-    ),
-    width: { size: 5739, type: WidthType.DXA },
-  }),
-  ...emptyLine(2),
-  new Paragraph({
-    children: [r("二〇二六年六月", { font: FONT_SONG, size: 32 })],
-    indent: { firstLine: convertMillimetersToTwip(49) },
-  }),
-];
-```
-
-### 关键要点
-
-| 要素 | 说明 |
-|------|------|
-| `HeightRule.EXACT` | 行高固定，防止内容撑开行高 |
-| 固定列宽 | 左列 2345 DXA (≈4.15cm)，右列 3394 DXA (≈6.0cm) |
-| 表格居中 | 整个 Table 包在一个没有 border 的无框表格中 |
-| 标签空格对齐 | "学       号 ：" 用空格填充到固定宽度 |
-
-## 目录
+普通段落无法精确控制标签和值的水平对齐。Table + HeightRule.EXACT 是最佳方案：
 
 ```javascript
-const tocChildren = [
-  new Paragraph({
-    children: [r("目 录", { font: FONT_HEI, size: 32 })],
-    alignment: AlignmentType.CENTER,
-    spacing: { before: 18 * 20, after: 9 * 20, line: 20 * 20, lineRule: "exact" },
-  }),
-  ...[
-    "1 绪论",
-    "  1.1 研究背景",
-    "  1.2 数据集介绍",
-    "2 技术原理",
-    "  2.1 模型架构",
-    "3 实验结果",
-    "  3.1 训练分析",
-    "  3.2 混淆矩阵分析",
-    "4 总结",
-  ].map(t => tocLine(t)),
-];
+new Table({
+  rows: [
+    ["学       院：", "计算机学院"],
+    ["专 业 班 级：", "计算机2308班"],
+  ].map(([label, value]) =>
+    new TableRow({
+      children: [
+        new TableCell({
+          children: [new Paragraph({ children: [r(label, { size: 28, bold: true })], alignment: AlignmentType.CENTER })],
+          width: { size: 2345, type: WidthType.DXA },  // 固定宽
+          verticalAlign: VerticalAlign.CENTER,
+        }),
+        new TableCell({
+          children: [new Paragraph({ children: [r(value, { size: 28, bold: true })], alignment: AlignmentType.CENTER })],
+          width: { size: 3394, type: WidthType.DXA },
+          verticalAlign: VerticalAlign.CENTER,
+        }),
+      ],
+      height: { value: 452, rule: HeightRule.EXACT },
+    })
+  ),
+  width: { size: 5739, type: WidthType.DXA },
+});
 ```
 
-`tocLine` 使用 `AlignmentType.DISTRIBUTE` 均匀分布。此处为手动目录，不含页码——如需自动目录需使用 docx.js 的 `TableOfContents` 组件。
+标签用空格填充到等宽（如 `"学       院："`），配合固定列宽，实现标签右对齐、值左对齐的效果。`HeightRule.EXACT` 防止内容撑开行高导致上下不对齐。
 
-## 文档组装
+### 封面校徽
+
+```javascript
+// 前置：import { readFileSync } from "node:fs"; import { join } from "node:path";
+const logoBuf = readFileSync(join(import.meta.dirname, "school_logo.jpg"));
+const { width: srcW, height: srcH } = imageSize(logoBuf);
+const logoW = Math.round(30 / 25.4 * 96);       // 3cm → px
+const logoH = Math.round(logoW * (srcH / srcW)); // 等比
+
+new Paragraph({
+  children: [new ImageRun({ data: logoBuf, transformation: { width: logoW, height: logoH }, type: "jpg" })],
+  alignment: AlignmentType.CENTER,
+  spacing: { before: 600, after: 200 },
+});
+```
+
+**注意**：不要靠文件名判断图片内容，必须确认图片本身是校徽。
+
+## 多 section 文档结构
+
+### 技巧：每章独立 section
+
+当不同章节需要不同的页眉/页码起始值时，必须拆分为独立 section：
 
 ```javascript
 const doc = new Document({
-  styles: {
-    default: {
-      document: { run: { font: FONT_TNR, size: 24 } },
-    },
-  },
+  styles: { default: { document: { run: { font: FONT_SONG, size: 24 } } } },
   sections: [
-    { properties: { page: PAGE_PROPS }, children: coverChildren },
-    { properties: { page: PAGE_PROPS }, children: tocChildren },
-    { properties: { page: PAGE_PROPS }, children: contentChildren },
+    { properties: { page: PAGE }, children: coverChildren },          // 封面
+    { properties: { page: PAGE }, children: abstractChildren },       // 摘要
+    ...chapters.map((ch, i) => ({
+      properties: {
+        page: { ...PAGE, ...(i === 0 ? { pageNumbers: { start: 1 } } : {}) },
+        oddAndEvenHeaders: true,
+      },
+      headers: { default: makeHeader(paperTitle), even: makeHeader(ch.title) },
+      footers: { default: makeFooter() },
+      children: ch.children,
+    })),
   ],
 });
-
-const buffer = await Packer.toBuffer(doc);
-writeFileSync("output.docx", buffer);
 ```
 
-### sections 数组
-
-每个 section 是一个独立的页面区域，可以有各自的 PAGE_PROPS。
-
-- 第一个 section：封面
-- 第二个 section：目录（可选）
-- 第三个 section：正文
-
-各 section 独立控制页码、页眉页脚、页面方向等。
+每个 section 有独立的 page 属性、headers、footers、children。封面/摘要的 section 不挂 footer = 不显示页码；第一章的 section 设 `pageNumbers.start: 1` = 从此开始编页码。

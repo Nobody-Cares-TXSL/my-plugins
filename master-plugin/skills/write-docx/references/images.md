@@ -1,92 +1,47 @@
-# 图片插入
+# 图片
 
 ## 问题
 
-硬编码 width/height 导致图片变形或显示不全。不同图片原始尺寸不同，统一写死一个尺寸必然出错。
+硬编码 width/height 导致变形。不同图片尺寸不同，统一写死必然出错。
 
-## 方案：读 PNG 元数据等比缩放
+## 技巧：读 PNG 元数据等比缩放
 
-### 读取 PNG 尺寸
-
-PNG 文件的宽度存储在 offset 16（4 bytes，big-endian），高度在 offset 20：
+PNG 尺寸存在文件头固定偏移处：
 
 ```javascript
 function imageSize(buf) {
-  return {
-    width: buf.readUInt32BE(16),
-    height: buf.readUInt32BE(20),
-  };
+  return { width: buf.readUInt32BE(16), height: buf.readUInt32BE(20) };
 }
 ```
 
-### 按目标毫米宽度等比缩放
+按目标宽度等比缩放：
 
 ```javascript
-function insertFigure(pngName, caption, widthMm = 140) {
-  const buf = loadPng(pngName);
+function insertFigure(buf, caption, widthMm = 140) {
   const sz = imageSize(buf);
-  const w = Math.round(widthMm / 25.4 * 96);           // mm → px (96 DPI)
-  const h = Math.round(w * (sz.height / sz.width));     // 等比缩放
+  const w = Math.round(widthMm / 25.4 * 96);          // mm → px (96 DPI)
+  const h = Math.round(w * (sz.height / sz.width));    // 等比
   return [
     new Paragraph({
-      children: [new ImageRun({
-        data: buf,
-        transformation: { width: w, height: h },
-        type: "png",  // 必须指定
-      })],
+      children: [new ImageRun({ data: buf, transformation: { width: w, height: h }, type: "png" })],
       alignment: AlignmentType.CENTER,
-      spacing: { before: 120, after: 60 },
     }),
-    figCap(caption),
+    new Paragraph({ children: [r(caption, { font: FONT_HEI, size: 21 })], alignment: AlignmentType.CENTER }),
   ];
 }
 ```
 
-### 图注
+要点：`type: "png"` 不能省，否则渲染失败。
+
+## 图片来源
+
+如果图片是外部生成的（如截图、实验结果），建议统一放到一个目录（如 `image_out/`），脚本中用绝对路径引用：
 
 ```javascript
-function figCap(text) {
-  return new Paragraph({
-    children: [new TextRun({ text, font: FONT_HEI, size: 21 })],
-    alignment: AlignmentType.CENTER,
-    spacing: { line: 20 * 20, lineRule: "exact" },
-  });
-}
+const IMAGES = resolve(import.meta.dirname, "..", "image_out");
+const buf = readFileSync(join(IMAGES, "result.png"));
 ```
 
-## 关键细节
+## 图注
 
-| 要点 | 说明 |
-|------|------|
-| `type: "png"` | ImageRun 必须指定图片类型，省略会导致渲染失败 |
-| 96 DPI | `widthMm / 25.4 * 96` 将毫米转为像素（屏幕 DPI） |
-| 返回数组 | `insertFigure` 返回 `[图片段落, 图注段落]`，展开插入 |
-
-## 加载图片
-
-```javascript
-import { resolve, dirname } from "path";
-import { fileURLToPath } from "url";
-import { existsSync, readFileSync } from "fs";
-
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const FIGURES = resolve(__dirname, "figures");
-
-function loadPng(name) {
-  const p = resolve(FIGURES, name);
-  if (!existsSync(p)) throw new Error(`图片不存在: ${p}`);
-  return readFileSync(p);
-}
-```
-
-## 用法
-
-```javascript
-// 在正文 children 数组中展开插入
-contentChildren.push(
-  bodyPara("图3-1展示了数据集样本..."),
-  ...insertFigure("samples.png", "图3-1 数据集样本展示", 145),
-);
-```
-
-`widthMm = 145` 表示图片在 Word 中显示为 14.5cm 宽，高度按原始比例自动计算。
+图注用黑体/五号，居中，紧跟图片后面。让 `insertFigure` 返回数组 `[图片段落, 图注段落]`，在 children 中一起展开插入，防止被其他内容隔开。
