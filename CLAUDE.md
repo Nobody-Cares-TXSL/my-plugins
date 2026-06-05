@@ -22,8 +22,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
         │   ├── commands-desc.txt       #     opencode 命令中文描述映射
         │   └── scripts/*.sh            #     各组件更新脚本
         ├── auto_answer/SKILL.md        #   基于 opencli browser 的自动答题
-        ├── write-docx/SKILL.md         #   基于 docx.js 生成中文 Word 文档
-        │   └── references/              #     docx 格式指南与踩坑速查
+        ├── write-docx/SKILL.md         #   docx.js 中文 Word 生成最佳实践
+        │   └── references/              #     字体/行距/表格/图片/公式/封面等专题
         └── update-my-plugins/SKILL.md  #   优化技能 → 同步文档 → 提交推送 → 更新本地
 ```
 
