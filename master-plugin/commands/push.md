@@ -1,7 +1,6 @@
 ---
 description: 按照 Git 约定式提交规范创建提交并推送到远程
 argument-hint: "<type>(<scope>): <description>"
-disable-model-invocation: true
 allowed-tools: Read, Edit, Bash(git:*)
 ---
 
