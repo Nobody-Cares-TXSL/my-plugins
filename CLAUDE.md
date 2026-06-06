@@ -65,3 +65,4 @@ claude plugin update master-plugin
 | opencli skills | `~/.agents/skills/` + `~/.claude/skills/`（符号链接） | `git clone --depth 1` + 同步 |
 | agent-reach skill | `~/.claude/skills/agent-reach/` | pipx upgrade + skill install |
 | notebooklm | pipx venv + `~/.claude/skills/notebooklm/` | pipx upgrade + skill install |
+| opencode CLI | `~/.opencode/bin/opencode` | `opencode upgrade --method curl` |

@@ -51,6 +51,17 @@ else
 fi
 echo ""
 
+# opencode CLI
+echo "--- opencode ---"
+if command -v opencode &>/dev/null; then
+  echo "  CLI: $(opencode --version 2>&1 | head -1)"
+  opencode_skills=$(ls -d "$HOME/.config/opencode/skills"/*/SKILL.md 2>/dev/null | wc -l)
+  echo "  skills: $opencode_skills"
+else
+  echo "  not installed"
+fi
+echo ""
+
 # opencli CLI + 站点/命令统计
 echo "--- opencli CLI ---"
 if command -v opencli &>/dev/null; then
