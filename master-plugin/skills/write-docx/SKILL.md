@@ -8,20 +8,20 @@ argument-hint: [无参数]
 
 **运行方式**：`npm install docx` → `node generate.mjs`
 
-## 专题索引
+## 使用方式
 
-| 问题 | 文件 | 核心技巧 |
-|------|------|----------|
-| 中文显示为默认字体 | [[references/fonts]] | 三字段字体对象 `{ ascii, eastAsia, hAnsi }` |
-| 行距不对、页边距计算 | [[references/page-paragraph]] | mm→twip 转换、`lineRule: "exact"`、首行缩进 |
-| 表格无边框/边框太密 | [[references/tables]] | 按行分配 top/bottom 边框，size 单位 1/8pt |
-| 图片变形/不显示 | [[references/images]] | 读 PNG 头等比缩放，必须指定 type |
-| LaTeX 公式无法渲染 | [[references/equations]] | KaTeX+Chrome 截图预渲染为 PNG，无边框表格实现公式序号 |
-| 封面信息对不齐 | [[references/cover-toc]] | Table + HeightRule.EXACT + 固定列宽；内置校徽 `references/assets/school.png` |
-| 每章不同页眉/页码 | [[references/cover-toc]] | 每章独立 section，`oddAndEvenHeaders: true` |
-| 目录页空白/不生成 | [[references/cover-toc]] | 手动构建：Bookmark + SimpleField(PAGEREF) + dot leader |
-| 完整模式参考 | [[references/boilerplate.mjs.txt]] | 所有常用模式的极简骨架 |
-| 高频踩坑 | [[references/pitfalls]] | 29 个症状→原因→修复速查 |
+1. **先读** [[references/boilerplate.mjs.txt]] — 获取完整代码骨架和所有工厂函数
+2. **按需加载**以下专题（根据用户任务选择相关文件）：
+
+| 任务涉及 | 文件 | 获取什么 |
+|----------|------|----------|
+| 字体显示异常 | [[references/fonts]] | 三字段字体对象 `{ ascii, eastAsia, hAnsi }` 原理 |
+| 页面/段落细节 | [[references/page-paragraph]] | 单位转换、行距原理、奇偶页眉、页码控制 |
+| 表格 | [[references/tables]] | 三线表边框哲学、行列控制要点 |
+| 图片 | [[references/images]] | PNG 头原理、等比缩放、type 必填 |
+| 公式 | [[references/equations]] | 渲染管线（KaTeX+Chrome+ImageMagick）、bmatrix 修复、行内公式 |
+| 封面/目录 | [[references/cover-toc]] | 封面对齐策略、手动目录构建原理、SimpleField 陷阱 |
+| 遇到 bug | [[references/pitfalls]] | 29 条症状→原因→修复速查 |
 
 ## 检查清单
 
