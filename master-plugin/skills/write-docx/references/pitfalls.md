@@ -23,3 +23,7 @@
 | 19 | 正则匹配 LaTeX `\\` 失败 | JS 正则中 `\\\\` 匹配一个 `\`，不是 `\\`。要匹配两个反斜杠需要 `/\\\\/g` | 用 Node 脚本打印验证：`console.log(/\\\\/g.test("\\\\"))` |
 | 20 | Chrome 截图大量空白 | 截取整个视口但公式只占一小块 | ImageMagick `convert -trim +repage -bordercolor white -border 16x16` |
 | 21 | bmatrix 小矩阵方括号太小 | KaTeX 的 `\begin{bmatrix}` 不自动扩展方括号 | 用 `\left[\vphantom{\frac{0}{0}}\begin{array}{cc}...\end{array}\right]`，自动检测列数 |
+| 22 | 章标题在正文中不显示 | 章节拆分时 `curCh = { title, els: [] }` 用了 `continue` 跳过 ch 元素 | `els: [el]` 把 ch 元素也加入，让 buildChildren 的 case 'ch' 能触发 |
+| 23 | subScript 参数不生效 | `r()` 工厂函数解构缺 `subScript`，TextRun 也没传 | 解构加 `subScript = false`，构造时传 `subScript` |
+| 24 | 引用标记 `[1]` 没变下标 | parseInline 只匹配 bold/code/eq，`[N]` 被 fallback 当普通文本吃掉 | 加 `^\[\d+\]` 分支输出 subscript，fallback 前瞻加 `\[\d+\]` |
+| 25 | 公式序号换行 | 公式表格右列固定 DXA 太窄 | 改百分比宽度（90%/10%）让序号列自适应 |

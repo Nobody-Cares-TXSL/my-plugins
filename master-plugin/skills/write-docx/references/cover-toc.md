@@ -36,18 +36,21 @@ new Table({
 
 ### 封面校徽
 
+内置校徽资源：`references/assets/school.png`（陕西科技大学镐京学院）。
+
 ```javascript
 // 前置：import { readFileSync } from "node:fs"; import { join } from "node:path";
-const logoBuf = readFileSync(join(import.meta.dirname, "school_logo.jpg"));
+const logoBuf = readFileSync(join(import.meta.dirname, "references/assets/school.png"));
 const { width: srcW, height: srcH } = imageSize(logoBuf);
-const logoW = Math.round(30 / 25.4 * 96);       // 3cm → px
-const logoH = Math.round(logoW * (srcH / srcW)); // 等比
 
 new Paragraph({
-  children: [new ImageRun({ data: logoBuf, transformation: { width: logoW, height: logoH }, type: "jpg" })],
+  children: [new ImageRun({ data: logoBuf, transformation: { width: srcW, height: srcH }, type: "png" })],
   alignment: AlignmentType.CENTER,
   spacing: { before: 600, after: 200 },
 });
+```
+
+如需缩放，将 `srcW/srcH` 替换为等比计算值。用原始像素尺寸时直接传入即可。
 ```
 
 **注意**：不要靠文件名判断图片内容，必须确认图片本身是校徽。

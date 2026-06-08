@@ -95,7 +95,7 @@ function equationPara(pngBuf, w, h, eqNum) {
             children: [new ImageRun({ data: pngBuf, transformation: { width: w, height: h }, type: "png" })],
             alignment: AlignmentType.CENTER,
           })],
-          width: { size: 5800, type: WidthType.DXA }, borders,
+          width: { size: 90, type: WidthType.PERCENTAGE }, borders,
           verticalAlign: VerticalAlign.CENTER,
         }),
         new TableCell({
@@ -103,12 +103,12 @@ function equationPara(pngBuf, w, h, eqNum) {
             children: [new TextRun({ text: `(${eqNum})` })],
             alignment: AlignmentType.RIGHT,
           })],
-          width: { size: 1200, type: WidthType.DXA }, borders,
+          width: { size: 10, type: WidthType.PERCENTAGE }, borders,
           verticalAlign: VerticalAlign.CENTER,
         }),
       ],
     })],
-    width: { size: 7000, type: WidthType.DXA },
+    width: { size: 100, type: WidthType.PERCENTAGE },
   });
 }
 ```
