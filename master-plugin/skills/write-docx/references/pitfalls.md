@@ -27,3 +27,7 @@
 | 23 | subScript 参数不生效 | `r()` 工厂函数解构缺 `subScript`，TextRun 也没传 | 解构加 `subScript = false`，构造时传 `subScript` |
 | 24 | 引用标记 `[1]` 没变下标 | parseInline 只匹配 bold/code/eq，`[N]` 被 fallback 当普通文本吃掉 | 加 `^\[\d+\]` 分支输出 subscript，fallback 前瞻加 `\[\d+\]` |
 | 25 | 公式序号换行 | 公式表格右列固定 DXA 太窄 | 改百分比宽度（90%/10%）让序号列自适应 |
+| 26 | SimpleField 输出 `[object Object]` | `new SimpleField({ instruction: "..." })` 传了对象，XML 序列化为 `[object Object]` | 直接传字符串：`new SimpleField(" PAGEREF ch_0 \\h ")` |
+| 27 | 目录页空白/不显示 | `TableOfContents` 生成的域在部分软件（WPS/LibreOffice）中不自动更新 | 手动构建目录：`BookmarkStart/End` 锚定标题 + `SimpleField(" PAGEREF ...")` 引用页码 + dot leader tab stop |
+| 28 | 标题加下划线不生效 | `r()` 工厂函数缺少 `underline` 参数 | 解构加 `underline`，构造 TextRun 时传入 |
+| 29 | TOC 域不自动更新 | Document 未设 `updateFields` | 加 `features: { updateFields: true }` 让 Word 打开时自动更新 |

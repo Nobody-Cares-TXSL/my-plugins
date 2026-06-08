@@ -19,8 +19,9 @@ argument-hint: [无参数]
 | LaTeX 公式无法渲染 | [[references/equations]] | KaTeX+Chrome 截图预渲染为 PNG，无边框表格实现公式序号 |
 | 封面信息对不齐 | [[references/cover-toc]] | Table + HeightRule.EXACT + 固定列宽；内置校徽 `references/assets/school.png` |
 | 每章不同页眉/页码 | [[references/cover-toc]] | 每章独立 section，`oddAndEvenHeaders: true` |
+| 目录页空白/不生成 | [[references/cover-toc]] | 手动构建：Bookmark + SimpleField(PAGEREF) + dot leader |
 | 完整模式参考 | [[references/boilerplate.mjs.txt]] | 所有常用模式的极简骨架 |
-| 高频踩坑 | [[references/pitfalls]] | 25 个症状→原因→修复速查 |
+| 高频踩坑 | [[references/pitfalls]] | 29 个症状→原因→修复速查 |
 
 ## 检查清单
 
@@ -34,3 +35,7 @@ argument-hint: [无参数]
 - [ ] Document 构造设 `styles.default`
 - [ ] 章节拆分时 ch 元素要进 `els`（否则正文无章标题）
 - [ ] 引用标记 `[N]` 用 `subScript: true` 渲染为下标
+- [ ] 标题加 `heading: "Heading1/2/3"` 属性 + `BookmarkStart/End`（供目录引用）
+- [ ] 目录用手动构建（Bookmark + SimpleField PAGEREF + dot leader），不要用 TableOfContents
+- [ ] SimpleField 直接传字符串，不要传 `{ instruction: "..." }` 对象
+- [ ] Document 加 `features: { updateFields: true }`

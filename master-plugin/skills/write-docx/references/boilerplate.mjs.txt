@@ -6,8 +6,9 @@
 import {
   Document, Packer, Paragraph, TextRun, ImageRun,
   Table, TableRow, TableCell,
+  SimpleField, BookmarkStart, BookmarkEnd,
   WidthType, AlignmentType, BorderStyle, VerticalAlign, HeightRule,
-  Header, Footer, PageNumber,
+  Header, Footer, PageNumber, TabStopType,
   convertMillimetersToTwip,
 } from "docx";
 import { readFileSync, existsSync, writeFileSync } from "node:fs";
@@ -32,8 +33,8 @@ const PAGE = {
 };
 
 // === TextRun 工厂 ===
-function r(text, { font = FONT_SONG, size = 24, bold = false, italics = false, subScript = false } = {}) {
-  return new TextRun({ text, font, size, bold, italics, subScript });
+function r(text, { font = FONT_SONG, size = 24, bold = false, italics = false, subScript = false, underline } = {}) {
+  return new TextRun({ text, font, size, bold, italics, subScript, underline });
 }
 
 // === 段落模式 ===
@@ -45,17 +46,25 @@ function bodyPara(children, indent = true) {
     ...(indent ? { indent: INDENT } : {}),
   });
 }
-// 章标题：居中 + 大字号
-function chapterTitle(text) {
+// 章标题：居中 + 大字号 + heading（供 TOC 识别）
+function chapterTitle(text, bookmark) {
   return new Paragraph({
-    children: [r(text, { font: FONT_HEI, size: 32, bold: true })],
+    heading: "Heading1",
+    children: [
+      ...(bookmark ? [new BookmarkStart(bookmark), new BookmarkEnd(bookmark)] : []),
+      r(text, { font: FONT_HEI, size: 32, bold: true }),
+    ],
     spacing: { before: 800, after: 400, ...LINE }, alignment: AlignmentType.CENTER,
   });
 }
 // 节标题：左对齐 + 中字号
-function sectionTitle(text) {
+function sectionTitle(text, bookmark) {
   return new Paragraph({
-    children: [r(text, { font: FONT_HEI, size: 28, bold: true })],
+    heading: "Heading2",
+    children: [
+      ...(bookmark ? [new BookmarkStart(bookmark), new BookmarkEnd(bookmark)] : []),
+      r(text, { font: FONT_HEI, size: 28, bold: true }),
+    ],
     spacing: { before: 200, after: 200, ...LINE }, alignment: AlignmentType.JUSTIFIED,
   });
 }
@@ -140,11 +149,47 @@ function equationPara(pngBuf, w, h, eqNum) {
   });
 }
 
+// === 手动目录：Bookmark + SimpleField(PAGEREF) + dot leader ===
+function buildTOC(chapters) {
+  const TOC_TAB = { type: TabStopType.RIGHT, position: convertMillimetersToTwip(150), leader: "dot" };
+  const entries = [new Paragraph({
+    children: [r("目　录", { font: FONT_HEI, size: 32, bold: true })],
+    alignment: AlignmentType.CENTER, spacing: { before: 800, after: 400, ...LINE },
+  })];
+  for (let i = 0; i < chapters.length; i++) {
+    const ch = chapters[i];
+    entries.push(new Paragraph({
+      children: [r(ch.title, { bold: true }), r("\t"), new SimpleField(` PAGEREF ch_${i} \\h `)],
+      spacing: LINE, tabStops: [TOC_TAB],
+    }));
+    let si = 0;
+    for (const el of ch.els) {
+      if (el.type === "sec") {
+        si++;
+        entries.push(new Paragraph({
+          children: [r("    " + el.text), r("\t"), new SimpleField(` PAGEREF sec_${i}_${si} \\h `)],
+          spacing: LINE, tabStops: [TOC_TAB],
+        }));
+      }
+    }
+  }
+  return entries;
+}
+
 // === 组装 ===
 const doc = new Document({
-  styles: { default: { document: { run: { font: FONT_SONG, size: 24 } } } },
+  features: { updateFields: true },  // Word 打开时自动更新域
+  styles: {
+    default: { document: { run: { font: FONT_SONG, size: 24 } } },
+    paragraphStyles: [
+      { id: "Heading1", name: "Heading 1", run: { font: FONT_HEI, size: 32, bold: true } },
+      { id: "Heading2", name: "Heading 2", run: { font: FONT_HEI, size: 28, bold: true } },
+      { id: "Heading3", name: "Heading 3", run: { font: FONT_HEI, size: 24, bold: true } },
+    ],
+  },
   sections: [
     { properties: { page: PAGE }, children: [/* 封面 */] },
+    { properties: { page: PAGE }, children: buildTOC(chapters) },   // 目录页
     { properties: { page: PAGE }, children: [/* 摘要 */] },
     // 每章独立 section（支持不同页眉/页码起始）
     ...chapters.map((ch, i) => ({
