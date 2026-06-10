@@ -8,10 +8,23 @@ argument-hint: [无参数]
 
 **运行方式**：`npm install docx` → `node generate.mjs`
 
+## 架构概览
+
+采用 **Markdown 数据源 + ESM 脚本** 分离架构：
+
+```
+paper.md (内容) ──parsePaper()──▶ elements[] ──buildChildren()──▶ docx.js 对象 ──▶ paper.docx
+```
+
+- **内容层**（`paper.md`）：论文标题、摘要、正文、公式、图表、引用、参考文献
+- **格式层**（`generate.mjs`）：字体字号、行距缩进、页眉页脚、封面布局、三线表样式
+- **分离收益**：改论文内容只需编辑 Markdown，改排版规范只需改脚本常量
+
+详细架构设计见 [[references/architecture]]。
+
 ## 使用方式
 
-1. **先读** [[references/boilerplate.mjs.txt]] — 获取完整代码骨架和所有工厂函数
-2. **按需加载**以下专题（根据用户任务选择相关文件）：
+**先读** [[references/boilerplate.mjs.txt]] — 获取完整代码骨架和所有工厂函数，再按需查阅以下专题：
 
 | 任务涉及 | 文件 | 获取什么 |
 |----------|------|----------|
@@ -21,6 +34,7 @@ argument-hint: [无参数]
 | 图片 | [[references/images]] | PNG 头原理、等比缩放、type 必填 |
 | 公式 | [[references/equations]] | 渲染管线（KaTeX+Chrome+ImageMagick）、bmatrix 修复、行内公式 |
 | 封面/目录 | [[references/cover-toc]] | 封面对齐策略、手动目录构建原理、SimpleField 陷阱 |
+| 整体架构 | [[references/architecture]] | Markdown→docx 解析架构、元素映射、内容与格式分离 |
 | 遇到 bug | [[references/pitfalls]] | 29 条症状→原因→修复速查 |
 
 ## 检查清单
@@ -39,3 +53,4 @@ argument-hint: [无参数]
 - [ ] 目录用手动构建（Bookmark + SimpleField PAGEREF + dot leader），不要用 TableOfContents
 - [ ] SimpleField 直接传字符串，不要传 `{ instruction: "..." }` 对象
 - [ ] Document 加 `features: { updateFields: true }`
+- [ ] 内容用 Markdown，格式用脚本（不要在脚本中硬编码论文内容）
