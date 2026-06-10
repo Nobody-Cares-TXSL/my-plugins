@@ -1,26 +1,19 @@
 ---
 name: write-docx
-description: docx.js 生成中文 Word 文档的最佳实践。字体、行距、表格、图片、公式、页眉页脚等常见问题的解决模式。
-argument-hint: [无参数]
+description: 使用 docx.js 生成中文 Word 文档时加载。覆盖字体、行距、表格、图片、公式、页眉页脚、封面、目录等常见问题。触发词：docx、Word、docx.js、生成文档、论文格式、三线表、公式渲染。
+argument-hint: [topic]
+compatibility: Requires Node.js with docx and katex packages. Optional: Google Chrome (equation rendering), ImageMagick (crop whitespace).
 ---
 
 # Write-Docx — docx.js 中文 Word 生成最佳实践
 
-**运行方式**：`npm install docx` → `node generate.mjs`
+## 概述
 
-## 架构概览
+基于 **Markdown 数据源 + ESM 脚本** 分离架构：`paper.md` → `parsePaper()` → `elements[]` → `buildChildren()` → docx.js 对象 → `paper.docx`。
 
-采用 **Markdown 数据源 + ESM 脚本** 分离架构：
+内容改 Markdown，格式改脚本常量，互不干扰。详细架构见 [[references/architecture.md]]。
 
-```
-paper.md (内容) ──parsePaper()──▶ elements[] ──buildChildren()──▶ docx.js 对象 ──▶ paper.docx
-```
-
-- **内容层**（`paper.md`）：论文标题、摘要、正文、公式、图表、引用、参考文献
-- **格式层**（`generate.mjs`）：字体字号、行距缩进、页眉页脚、封面布局、三线表样式
-- **分离收益**：改论文内容只需编辑 Markdown，改排版规范只需改脚本常量
-
-详细架构设计见 [[references/architecture]]。
+首次使用先读 [[references/quickstart.md]] 了解项目初始化与工作流。
 
 ## 使用方式
 
@@ -28,14 +21,15 @@ paper.md (内容) ──parsePaper()──▶ elements[] ──buildChildren()�
 
 | 任务涉及 | 文件 | 获取什么 |
 |----------|------|----------|
-| 字体显示异常 | [[references/fonts]] | 三字段字体对象 `{ ascii, eastAsia, hAnsi }` 原理 |
-| 页面/段落细节 | [[references/page-paragraph]] | 单位转换、行距原理、奇偶页眉、页码控制 |
-| 表格 | [[references/tables]] | 三线表边框哲学、行列控制要点 |
-| 图片 | [[references/images]] | PNG 头原理、等比缩放、type 必填 |
-| 公式 | [[references/equations]] | 渲染管线（KaTeX+Chrome+ImageMagick）、bmatrix 修复、行内公式 |
-| 封面/目录 | [[references/cover-toc]] | 封面对齐策略、手动目录构建原理、SimpleField 陷阱 |
-| 整体架构 | [[references/architecture]] | Markdown→docx 解析架构、元素映射、内容与格式分离 |
-| 遇到 bug | [[references/pitfalls]] | 29 条症状→原因→修复速查 |
+| 字体显示异常 | [[references/fonts.md]] | 三字段字体对象 `{ ascii, eastAsia, hAnsi }` 原理 |
+| 页面/段落细节 | [[references/page-paragraph.md]] | 单位转换、行距原理、奇偶页眉、页码控制 |
+| 表格 | [[references/tables.md]] | 三线表边框哲学、行列控制要点 |
+| 图片 | [[references/images.md]] | PNG 头原理、等比缩放、type 必填 |
+| 公式 | [[references/equations.md]] | 渲染管线（KaTeX+Chrome+ImageMagick）、bmatrix 修复、行内公式 |
+| 封面/目录 | [[references/cover-toc.md]] | 封面对齐策略、手动目录构建原理、SimpleField 陷阱 |
+| 整体架构 | [[references/architecture.md]] | Markdown→docx 解析架构、元素映射、内容与格式分离 |
+| 遇到 bug | [[references/pitfalls.md]] | 29 条症状→原因→修复速查 |
+| 项目初始化 | [[references/quickstart.md]] | 初始化、目录结构、运行命令、修改流程 |
 
 ## 检查清单
 
