@@ -67,17 +67,21 @@ echo "--- opencli CLI ---"
 if command -v opencli &>/dev/null; then
   opencli_ver=$(opencli --version 2>&1 | head -1)
   echo "  $opencli_ver"
-  opencli_stats=$(opencli list 2>&1 | tail -1)
+  opencli_stats=$(opencli list 2>&1 | grep -E '[0-9]+ built-in commands' | head -1 | sed 's/^ *//')
   echo "  $opencli_stats"
 else
   echo "  not installed"
 fi
 echo ""
 
-# opencli skills
-echo "--- opencli Skills ---"
+# Agent skills（~/.agents/skills/ 是通用目录，含 opencli 生态与独立来源的 skill）
+echo "--- Agent Skills (~/.agents/skills) ---"
 if [ -d "$AGENT_SKILLS" ]; then
-  ls -1 "$AGENT_SKILLS" 2>/dev/null | sed 's/^/  /'
+  # opencli 生态：opencli-* 前缀 + smart-search（frontmatter 声明"基于 opencli 命令"）
+  echo "  [opencli 生态]"
+  ls -1 "$AGENT_SKILLS" 2>/dev/null | grep -E '^(opencli-|smart-search$)' | sed 's/^/    /'
+  echo "  [独立]"
+  ls -1 "$AGENT_SKILLS" 2>/dev/null | grep -vE '^(opencli-|smart-search$)' | sed 's/^/    /'
 else
   echo "  not installed"
 fi

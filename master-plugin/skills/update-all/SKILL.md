@@ -106,7 +106,7 @@ pipx upgrade notebooklm-py 2>&1 && notebooklm skill install 2>&1
 bash {skillDir}/scripts/snapshot.sh after
 ```
 
-**对比两次快照**，输出变更摘要（使用 `⬆️` 标记升级、`✅` 标记无变化）。检测是否有新/移除的 opencli skill。
+**对比两次快照**，输出变更摘要（使用 `⬆️` 标记升级、`✅` 标记无变化）。检测 [opencli 生态] 组是否有新/移除的 skill（独立 skill 由各自来源管理，不计入 opencli 变更）。
 
 ## 文档更新
 
@@ -119,7 +119,7 @@ bash {skillDir}/scripts/snapshot.sh after
 - **插件表**: 各插件的技能列表
 
 版本检测命令：
-- opencli 站点/命令数: `opencli list 2>&1 | tail -1`（输出格式如 `810 built-in commands across 141 sites, 10 external CLIs`）
+- opencli 站点/命令数: `opencli list 2>&1 | grep "built-in commands"`（输出格式如 `1050 built-in commands across 162 sites, 13 external CLIs`；勿用 `tail -1`，node warning 会挤掉统计行）
 - agent-reach 通道数: `agent-reach doctor 2>&1 | grep "状态："`
 
 ### 文档 B: `~/Project/obsidian/04 调研/工具栈/Superpowers_Gstack_README.md`
@@ -150,7 +150,7 @@ bash {skillDir}/scripts/snapshot.sh after
 | 插件安装信息 | `~/.claude/plugins/installed_plugins.json` | — |
 | gstack | `~/.claude/skills/gstack/` | `garrytan/gstack` |
 | gstack (opencode) | `~/.config/opencode/skills/<name>/SKILL.md` → gstack 仓库 | 符号链接，由 `update-gstack-opencode.sh` 维护 |
-| opencli skills | `~/.agents/skills/` + `~/.claude/skills/` (symlinks) | `jackwener/opencli` |
+| opencli skills（生态） | `~/.agents/skills/`（通用 agent skills 目录，opencli 生态占其中一部分）+ `~/.claude/skills/` (symlinks) | `jackwener/opencli` |
 | agent-reach skill | `~/.claude/skills/agent-reach/` | `Panniantong/Agent-Reach` → `agent_reach/skill/` |
 | opencli CLI | 全局 npm | `@jackwener/opencli` |
 | opencode CLI | `~/.opencode/bin/opencode` | `opencode upgrade --method curl` |
