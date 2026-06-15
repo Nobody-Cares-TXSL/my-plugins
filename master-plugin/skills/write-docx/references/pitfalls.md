@@ -31,3 +31,4 @@
 | 27 | 目录页空白/不显示 | `TableOfContents` 生成的域在部分软件（WPS/LibreOffice）中不自动更新 | 手动构建目录：`BookmarkStart/End` 锚定标题 + `SimpleField(" PAGEREF ...")` 引用页码 + dot leader tab stop |
 | 28 | 标题加下划线不生效 | `r()` 工厂函数缺少 `underline` 参数 | 解构加 `underline`，构造 TextRun 时传入 |
 | 29 | TOC 域不自动更新 | Document 未设 `updateFields` | 加 `features: { updateFields: true }` 让 Word 打开时自动更新 |
+| 30 | 中文文件名输出路径变成 URL 编码（`%E6%99%BA...`） | `new URL("./中文.docx", import.meta.url).pathname` 不解码中文 | 用 `resolve(import.meta.dirname, "文件名.docx")` 或 `fileURLToPath(new URL(...))` |

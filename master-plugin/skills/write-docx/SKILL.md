@@ -28,7 +28,7 @@ compatibility: Requires Node.js with docx and katex packages. Optional: Google C
 | 公式 | [[references/equations.md]] | 渲染管线（KaTeX+Chrome+ImageMagick）、bmatrix 修复、行内公式 |
 | 封面/目录 | [[references/cover-toc.md]] | 封面对齐策略、手动目录构建原理、SimpleField 陷阱 |
 | 整体架构 | [[references/architecture.md]] | Markdown→docx 解析架构、元素映射、内容与格式分离 |
-| 遇到 bug | [[references/pitfalls.md]] | 29 条症状→原因→修复速查 |
+| 遇到 bug | [[references/pitfalls.md]] | 30 条症状→原因→修复速查 |
 | 项目初始化 | [[references/quickstart.md]] | 初始化、目录结构、运行命令、修改流程 |
 
 ## 检查清单
@@ -48,3 +48,6 @@ compatibility: Requires Node.js with docx and katex packages. Optional: Google C
 - [ ] SimpleField 直接传字符串，不要传 `{ instruction: "..." }` 对象
 - [ ] Document 加 `features: { updateFields: true }`
 - [ ] 内容用 Markdown，格式用脚本（不要在脚本中硬编码论文内容）
+- [ ] 正文段落用 `parseInline(text)` 处理内联格式（`**bold**`、`` `code` ``、`$eq$`、`[N]`下标），不要只传裸字符串
+- [ ] 列表项（`- ` 开头）解析为带左缩进段落，不要当普通文本保留前缀
+- [ ] 中文文件名输出用 `resolve(import.meta.dirname, "文件名.docx")`，不要用 `new URL().pathname`

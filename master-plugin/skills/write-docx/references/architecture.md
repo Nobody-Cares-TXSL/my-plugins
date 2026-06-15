@@ -43,6 +43,9 @@ function parsePaper(md) {
     // 显示公式 $$...$$
     if (line.startsWith('$$') && line.endsWith('$$')) { /* ... */ continue; }
 
+    // 列表项（- 或 * 开头）
+    if (/^[-*]\s+/.test(line)) { elements.push({ type: 'list', text: line.replace(/^[-*]\s+/, '') }); continue; }
+
     // 普通段落
     elements.push({ type: 'p', text: line });
   }
@@ -64,6 +67,7 @@ function parsePaper(md) {
 | `eq` | `$$...$$` | `equationPara(pngName, eqNum)` |
 | `img` | `![alt](path)` | `insertFigure(fname, caption)` |
 | `table` | `\|...\|` | `makeTable(headers, rows, caption)` |
+| `list` | `- ` 或 `* ` 开头 | 带左缩进的段落：`bodyPara(parseInline(text), indent=false)` + `indent: { left, hanging }` |
 
 ### 内联解析
 
