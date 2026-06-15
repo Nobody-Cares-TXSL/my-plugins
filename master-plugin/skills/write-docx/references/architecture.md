@@ -38,7 +38,11 @@ function parsePaper(md) {
     if (imgM) { /* ... */ continue; }
 
     // 表格行
-    if (line.startsWith('|')) { /* 收集 headers/rows */ continue; }
+    if (line.startsWith('|')) {
+      // 收集表头 → 检测下一行是否为 |---|---| 分隔行（用正则判断，无分隔行则不跳过）
+      // ⚠️ 不能无条件跳过表头下一行：无分隔行的表格会丢失第一条数据
+      /* 收集 headers/rows */ continue;
+    }
 
     // 显示公式 $$...$$
     if (line.startsWith('$$') && line.endsWith('$$')) { /* ... */ continue; }
@@ -54,6 +58,8 @@ function parsePaper(md) {
 ```
 
 关键：表格用状态机（`inTable` 标记），图片自动取下一行作图注，`---` 分隔符忽略。
+
+⚠️ **表格分隔行必须智能检测**：表头后下一行用正则 `/^\|[\s:|-]*-{2,}[\s:|-]*\|?\s*$/` 判断，匹配才跳过。markdown 表格可省略 `|---|---|` 分隔行，若无条件跳过表头下一行，会把第一条数据行误当 separator 吞掉（实测 STM32、第一项器件等行丢失）。
 
 ### 元素类型表
 

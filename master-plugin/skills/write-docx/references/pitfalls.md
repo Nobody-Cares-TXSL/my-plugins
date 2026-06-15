@@ -32,3 +32,4 @@
 | 28 | 标题加下划线不生效 | `r()` 工厂函数缺少 `underline` 参数 | 解构加 `underline`，构造 TextRun 时传入 |
 | 29 | TOC 域不自动更新 | Document 未设 `updateFields` | 加 `features: { updateFields: true }` 让 Word 打开时自动更新 |
 | 30 | 中文文件名输出路径变成 URL 编码（`%E6%99%BA...`） | `new URL("./中文.docx", import.meta.url).pathname` 不解码中文 | 用 `resolve(import.meta.dirname, "文件名.docx")` 或 `fileURLToPath(new URL(...))` |
+| 31 | 表格第一条数据行丢失（如 STM32、首个器件消失） | 解析表头后无条件 `i++` 跳过"分隔行"，但无 `\|---\|---\|` 分隔行的表格会把第一条数据行误当 separator 吞掉 | 用正则 `/^\|[\s:\|-]*-{2,}[\s:\|-]*\|?\s*$/` 检测，匹配才跳过分隔行 |

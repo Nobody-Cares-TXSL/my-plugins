@@ -28,7 +28,7 @@ compatibility: Requires Node.js with docx and katex packages. Optional: Google C
 | 公式 | [[references/equations.md]] | 渲染管线（KaTeX+Chrome+ImageMagick）、bmatrix 修复、行内公式 |
 | 封面/目录 | [[references/cover-toc.md]] | 封面对齐策略、手动目录构建原理、SimpleField 陷阱 |
 | 整体架构 | [[references/architecture.md]] | Markdown→docx 解析架构、元素映射、内容与格式分离 |
-| 遇到 bug | [[references/pitfalls.md]] | 30 条症状→原因→修复速查 |
+| 遇到 bug | [[references/pitfalls.md]] | 31 条症状→原因→修复速查 |
 | 项目初始化 | [[references/quickstart.md]] | 初始化、目录结构、运行命令、修改流程 |
 
 ## 检查清单
