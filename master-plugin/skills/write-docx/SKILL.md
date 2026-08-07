@@ -2,7 +2,7 @@
 name: write-docx
 description: 使用 docx.js 生成中文 Word 文档时加载。覆盖字体、行距、表格、图片、公式、页眉页脚、封面、目录等常见问题。触发词：docx、Word、docx.js、生成文档、论文格式、三线表、公式渲染。
 argument-hint: [topic]
-compatibility: Requires Node.js with docx and katex packages. Optional: Google Chrome (equation rendering), ImageMagick (crop whitespace).
+compatibility: "Requires Node.js with docx and katex packages. Optional: Google Chrome (equation rendering), ImageMagick (crop whitespace)."
 ---
 
 # Write-Docx — docx.js 中文 Word 生成最佳实践
