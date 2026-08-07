@@ -11,7 +11,6 @@ export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
 LABEL="${1:-snapshot}"
 SETTINGS="$HOME/.claude/settings.json"
 PLUGINS="$HOME/.claude/plugins/installed_plugins.json"
-GSTACK_VER="$HOME/.claude/skills/gstack/VERSION"
 AGENT_SKILLS="$HOME/.agents/skills"
 REACH_SKILL="$HOME/.claude/skills/agent-reach"
 
@@ -39,17 +38,6 @@ for k, v in sorted(plugins.items()):
 "
   echo ""
 fi
-
-# gstack
-echo "--- gstack ---"
-if [ -f "$GSTACK_VER" ]; then
-  echo "  $(cat "$GSTACK_VER")"
-  gstack_count=$(ls -d "$HOME/.claude/skills/gstack"/*/SKILL.md 2>/dev/null | wc -l)
-  echo "  skills: $gstack_count"
-else
-  echo "  not installed"
-fi
-echo ""
 
 # opencode CLI
 echo "--- opencode ---"

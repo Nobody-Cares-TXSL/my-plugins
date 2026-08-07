@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
-# update-opencode-commands.sh — 同步所有 skills 到 opencode.jsonc 的 command 配置
+# update-opencode-commands.sh — 同步所有 skills + 插件 commands 到 opencode.jsonc 的 command 配置
 # 中文描述从 commands-desc.txt 读取，skill 名称从 SKILL.md frontmatter 提取
 set -euo pipefail
 
 : "${TMPDIR:=/tmp}"
 
 OCCONFIG="$HOME/.config/opencode/opencode.jsonc"
-GSTACK="$HOME/.claude/skills/gstack"
 CLAUDE_SKILLS="$HOME/.claude/skills"
 AGENTS_SKILLS="$HOME/.agents/skills"
+PLUGIN_SKILLS="$HOME/plugins/master-plugin/skills"
+PLUGIN_COMMANDS="$HOME/plugins/master-plugin/commands"
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
 DESC_MAP="$SCRIPT_DIR/../commands-desc.txt"
 
@@ -33,22 +34,30 @@ extract_description() {
 
 # 收集所有 skill name（去重），同时输出 name<TAB>skill_md_path
 collect_skill_entries() {
-  # gstack: 有 SKILL.md + name 字段与目录名一致（自动过滤非 skill 目录和 name 重定向）
-  for d in "$GSTACK"/*/; do
-    [ -f "${d}SKILL.md" ] || continue
-    dir_name=$(basename "$d")
-    skill_name=$(extract_name "${d}SKILL.md") || continue
-    [ -n "$skill_name" ] && [ "$skill_name" = "$dir_name" ] && printf '%s\t%s\n' "$skill_name" "${d}SKILL.md"
-  done
   for d in "$CLAUDE_SKILLS"/*/; do
     [ -d "$d" ] || continue
     [ -L "$d" ] && continue
-    case "$(basename "$d")" in gstack|update-all|autoplan|CLAUDE.md|README.md|skills-dashboard.html) continue;; esac
+    case "$(basename "$d")" in update-all|CLAUDE.md|README.md|skills-dashboard.html) continue;; esac
     name=$(extract_name "${d}SKILL.md") && printf '%s\t%s\n' "$name" "${d}SKILL.md"
   done
   for d in "$AGENTS_SKILLS"/*/; do
     [ -d "$d" ] || continue
     name=$(extract_name "${d}SKILL.md") && printf '%s\t%s\n' "$name" "${d}SKILL.md"
+  done
+  # 插件仓库 skills（master-plugin）
+  for d in "$PLUGIN_SKILLS"/*/; do
+    [ -d "$d" ] || continue
+    name=$(extract_name "${d}SKILL.md") && printf '%s\t%s\n' "$name" "${d}SKILL.md"
+  done
+}
+
+# 收集插件仓库 commands/*.md：name<TAB>path<TAB>描述（描述已是中文，直接可用）
+collect_command_entries() {
+  for f in "$PLUGIN_COMMANDS"/*.md; do
+    [ -f "$f" ] || continue
+    name=$(basename "$f" .md)
+    desc=$(awk '/^description:/{sub(/^description:[[:space:]]*/, ""); gsub(/^[[:space:]]+|[[:space:]]+$/, ""); print; exit}' "$f")
+    printf '%s\t%s\t%s\n' "$name" "$f" "$desc"
   done
 }
 
@@ -58,9 +67,9 @@ trap 'rm -rf "$TMP"' EXIT
 # 写入临时文件供 Python 读取
 collect_skill_entries | sort -u -t$'\t' -k1,1 > "$TMP/all_entries.txt"
 cut -f1 "$TMP/all_entries.txt" > "$TMP/all_names.txt"
+collect_command_entries > "$TMP/cmd_entries.txt"
 
 # 自动为新 skill 生成中文描述并追加到 commands-desc.txt
-DESC_MAP_DIR="$(dirname "$DESC_MAP")"
 new_entries=()
 while IFS=$'\t' read -r name path; do
   grep -qF "${name}|" "$DESC_MAP" 2>/dev/null || new_entries+=("$name"$'\t'"$path")
@@ -84,8 +93,8 @@ ${translate_input}"
   translation_result=$(claude -p "$prompt" 2>/dev/null)
 
   if [ -n "$translation_result" ]; then
-    # 只保留符合 name|desc 格式的行，过滤掉 Claude 的对话性输出
-    echo "$translation_result" | grep '|' >> "$DESC_MAP"
+    # 只保留符合 name|desc 格式的行，过滤掉 Claude 的对话性输出；去除反引号包裹
+    echo "$translation_result" | grep '|' | sed -E 's/^[[:space:]]*`//; s/`[[:space:]]*$//' >> "$DESC_MAP"
     # 统计成功追加的数量
     added=$(echo "$translation_result" | grep -c '|')
     echo "  Added $added description(s) to commands-desc.txt"
@@ -136,6 +145,28 @@ except FileNotFoundError:
 with open(f'{tmp}/all_names.txt') as f:
     all_names = sorted([n.strip() for n in f if n.strip()])
 
+# 插件 commands：name<TAB>path<TAB>desc
+cmd_entries = {}
+with open(f'{tmp}/cmd_entries.txt') as f:
+    for line in f:
+        parts = line.rstrip('\n').split('\t')
+        if len(parts) >= 2:
+            cmd_entries[parts[0]] = {'path': parts[1], 'desc': parts[2] if len(parts) > 2 else ''}
+
+# 读取命令 body（去掉 frontmatter）作为 opencode template
+def read_cmd_template(path):
+    try:
+        with open(path) as f:
+            content = f.read()
+        if content.startswith('---'):
+            parts = content.split('---', 2)
+            if len(parts) == 3:
+                content = parts[2]
+        content = content.replace('AskUserQuestion', 'question')
+        return content.strip()
+    except Exception:
+        return None
+
 # 检测变更
 existing_names = sorted(existing.keys())
 new_names = sorted(set(all_names) - set(existing_names))
@@ -150,9 +181,7 @@ if not new_names and not removed_names:
 
 # 构建 commands
 # 只保留已存在的 OR commands-desc.txt 中有中文描述的 skill
-valid_names = set(existing.keys()) | set(zh_map.keys())
 commands = {}
-new_skills = []
 skipped = []
 for name in all_names:
     if name in existing:
@@ -161,6 +190,19 @@ for name in all_names:
         commands[name] = {'description': zh_map[name], 'template': f'/{name}'}
     else:
         skipped.append(name)
+
+# 插件 commands（无同名 skill 时使用 body 作为 template）
+for name, info in cmd_entries.items():
+    if name in commands:
+        continue
+    if name in existing:
+        commands[name] = existing[name]
+        continue
+    template = read_cmd_template(info['path'])
+    if template is None:
+        continue
+    desc = info['desc'] or existing.get(name, {}).get('description', '')
+    commands[name] = {'description': desc, 'template': template}
 
 # 写入（保留原有所有顶层 key，只更新 command）
 data['command'] = commands

@@ -1,6 +1,6 @@
 ---
 name: update-all
-description: 一键更新所有已启用 Claude Code 插件、opencli、agent-reach、notebooklm、gstack、opencode 并同步 Obsidian 文档
+description: 一键更新所有已启用 Claude Code 插件、opencli、agent-reach、notebooklm、opencode 并同步 Obsidian 文档
 allowed-tools:
   - Bash
   - Read
@@ -14,19 +14,17 @@ allowed-tools:
 
 ## 任务追踪
 
-开始前，用 TaskCreate 创建以下 11 个任务，按顺序逐步 TaskUpdate 为 in_progress → completed：
+开始前，用 TaskCreate 创建以下 9 个任务，按顺序逐步 TaskUpdate 为 in_progress → completed：
 
 1. **版本快照（更新前）** — snapshot.sh before，保存 UPDATE_BEFORE
 2. **Claude Code 插件** — update-plugins.sh
-3. **gstack** — git pull
-4. **opencode CLI** — update-opencode.sh（curl 二进制更新）
-5. **gstack→opencode 符号链接** — update-gstack-opencode.sh
-6. **opencode commands** — update-opencode-commands.sh
-7. **opencli** — update-opencli.sh（含 nvm 加载）
-8. **agent-reach** — update-agent-reach.sh
-9. **notebooklm** — pipx upgrade + skill install
-10. **版本快照（更新后）+ 对比** — snapshot.sh after，输出变更摘要
-11. **更新 Obsidian 文档** — README.md + Superpowers_Gstack_README.md
+3. **opencode CLI** — update-opencode.sh（curl 二进制更新）
+4. **opencode commands** — update-opencode-commands.sh
+5. **opencli** — update-opencli.sh（含 nvm 加载）
+6. **agent-reach** — update-agent-reach.sh
+7. **notebooklm** — pipx upgrade + skill install
+8. **版本快照（更新后）+ 对比** — snapshot.sh after，输出变更摘要
+9. **更新 Obsidian 文档** — README.md + Superpowers_Gstack_README.md
 
 完成后输出 reload 提示。
 
@@ -38,7 +36,6 @@ allowed-tools:
 - `update-opencli.sh` — opencli CLI + skills
 - `update-agent-reach.sh` — agent-reach CLI + skill
 - `update-opencode.sh` — opencode CLI 二进制更新
-- `update-gstack-opencode.sh` — gstack→opencode 符号链接
 - `update-opencode-commands.sh` — opencode.jsonc commands 同步（中文描述映射见 `commands-desc.txt`）
 
 ## 执行命令
@@ -56,22 +53,10 @@ bash {skillDir}/scripts/snapshot.sh before
 bash {skillDir}/scripts/update-plugins.sh
 ```
 
-### gstack
-
-```bash
-cd ~/.claude/skills/gstack && git pull origin main 2>&1
-```
-
 ### opencode CLI
 
 ```bash
 bash {skillDir}/scripts/update-opencode.sh
-```
-
-### gstack→opencode 符号链接同步
-
-```bash
-bash {skillDir}/scripts/update-gstack-opencode.sh
 ```
 
 ### opencode commands 同步
@@ -126,7 +111,6 @@ bash {skillDir}/scripts/snapshot.sh after
 
 - 最后更新日期
 - Superpowers 版本号（从 `installed_plugins.json` 读取）
-- gstack 版本号和命令数（`cat ~/.claude/skills/gstack/VERSION`、`ls ~/.claude/skills/gstack/*/SKILL.md | wc -l`）
 - 新增 skill 补充到对应分组
 
 ### 文档原则
@@ -148,8 +132,6 @@ bash {skillDir}/scripts/snapshot.sh after
 |------|-------------|--------|
 | 已启用插件列表 | `~/.claude/settings.json` → `enabledPlugins` | — |
 | 插件安装信息 | `~/.claude/plugins/installed_plugins.json` | — |
-| gstack | `~/.claude/skills/gstack/` | `garrytan/gstack` |
-| gstack (opencode) | `~/.config/opencode/skills/<name>/SKILL.md` → gstack 仓库 | 符号链接，由 `update-gstack-opencode.sh` 维护 |
 | opencli skills（生态） | `~/.agents/skills/`（通用 agent skills 目录，opencli 生态占其中一部分）+ `~/.claude/skills/` (symlinks) | `jackwener/opencli` |
 | agent-reach skill | `~/.claude/skills/agent-reach/` | `Panniantong/Agent-Reach` → `agent_reach/skill/` |
 | opencli CLI | 全局 npm | `@jackwener/opencli` |
