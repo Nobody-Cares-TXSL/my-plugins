@@ -43,7 +43,7 @@ fi
 echo "--- opencode ---"
 if command -v opencode &>/dev/null; then
   echo "  CLI: $(opencode --version 2>&1 | head -1)"
-  opencode_skills=$(ls -d "$HOME/.config/opencode/skills"/*/SKILL.md 2>/dev/null | wc -l)
+  opencode_skills=$(ls -d "$HOME/.config/opencode/skills"/*/SKILL.md 2>/dev/null | wc -l || true)
   echo "  skills: $opencode_skills"
 else
   echo "  not installed"
