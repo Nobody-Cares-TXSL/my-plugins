@@ -16,3 +16,5 @@ opencli-sitemap-author|创建或维护 OpenCLI 站点地图：为智能体记录
 update-all|一键更新所有已启用的 Claude Code 插件、opencli、agent-reach、notebooklm、opencode 并同步 Obsidian 文档
 update-my-plugins|优化 my-plugins 中的技能并推送更新到 GitHub，随后更新本地插件
 write-docx|使用 docx.js 生成中文 Word 文档，覆盖字体、行距、表格、图片、公式、页眉页脚、封面、目录等常见问题
+grilling|对用户的计划、决策或想法进行穷追不舍的盘问，用于用户想压力测试自己的思路或使用 'grill' 触发词时。
+grill-me|一场穷追不舍的访谈，用来打磨计划或设计。
