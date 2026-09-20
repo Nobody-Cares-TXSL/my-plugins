@@ -33,3 +33,4 @@
 | 29 | TOC 域不自动更新 | Document 未设 `updateFields` | 加 `features: { updateFields: true }` 让 Word 打开时自动更新 |
 | 30 | 中文文件名输出路径变成 URL 编码（`%E6%99%BA...`） | `new URL("./中文.docx", import.meta.url).pathname` 不解码中文 | 用 `resolve(import.meta.dirname, "文件名.docx")` 或 `fileURLToPath(new URL(...))` |
 | 31 | 表格第一条数据行丢失（如 STM32、首个器件消失） | 解析表头后无条件 `i++` 跳过"分隔行"，但无 `\|---\|---\|` 分隔行的表格会把第一条数据行误当 separator 吞掉 | 用正则 `/^\|[\s:\|-]*-{2,}[\s:\|-]*\|?\s*$/` 检测，匹配才跳过分隔行 |
+| 32 | 表格列宽不生效、中文在词中间折行（封面「…电子投票系 / 统」）；改每个 `TableCell.width` 或只加 `layout: TableLayoutType.FIXED` 都无效 | docx.js 的 `<w:tblGrid>` 只由 `Table({ columnWidths })` 生成；不传时**每列** `gridCol` 退化为 `w="100"`（≈1.76 mm）。渲染端（LibreOffice/Word）按 gridCol 划分列宽，即使各单元格 `tcW` 数值正确也会被压塌 | `new Table({ columnWidths: [1750, 4550], width: { size: 6300, type: WidthType.DXA }, layout: TableLayoutType.FIXED })`，三者相加必须自洽（`ΣcolumnWidths == tblW == 每个 cell width`）。诊断（只读，勿回写 XML）：`unzip -p x.docx word/document.xml \| grep -o '<w:gridCol[^/]*/>'` |

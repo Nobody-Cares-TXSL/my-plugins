@@ -7,7 +7,7 @@ import {
   Document, Packer, Paragraph, TextRun, ImageRun,
   Table, TableRow, TableCell,
   SimpleField, BookmarkStart, BookmarkEnd,
-  WidthType, AlignmentType, BorderStyle, VerticalAlign, HeightRule,
+  WidthType, AlignmentType, BorderStyle, VerticalAlign, HeightRule, TableLayoutType,
   Header, Footer, PageNumber, TabStopType,
   convertMillimetersToTwip,
 } from "docx";
@@ -119,18 +119,22 @@ function makeTable(headers, rows) {
 }
 
 // === 封面信息表模式：Table + HeightRule.EXACT 对齐 ===
+// columnWidths 必须与每个 cell 的 width、以及表宽一致：缺它 tblGrid 会退化成 gridCol w="100"，值列被压塌
 function makeCoverTable(info) {
+  const COLS = [2345, 3394]; // 值列放不下长课题名时把宽度挪给值列，如 [1750, 4550]
   return new Table({
     rows: info.map(([label, value]) =>
       new TableRow({
         children: [
-          new TableCell({ children: [new Paragraph({ children: [r(label, { size: 28, bold: true })], alignment: AlignmentType.CENTER })], width: { size: 2345, type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER }),
-          new TableCell({ children: [new Paragraph({ children: [r(value, { size: 28, bold: true })], alignment: AlignmentType.CENTER })], width: { size: 3394, type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER }),
+          new TableCell({ children: [new Paragraph({ children: [r(label, { size: 28, bold: true })], alignment: AlignmentType.CENTER })], width: { size: COLS[0], type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER }),
+          new TableCell({ children: [new Paragraph({ children: [r(value, { size: 28, bold: true })], alignment: AlignmentType.CENTER })], width: { size: COLS[1], type: WidthType.DXA }, verticalAlign: VerticalAlign.CENTER }),
         ],
         height: { value: 452, rule: HeightRule.EXACT },
       })
     ),
-    width: { size: 5739, type: WidthType.DXA },
+    columnWidths: COLS,
+    width: { size: COLS[0] + COLS[1], type: WidthType.DXA },
+    layout: TableLayoutType.FIXED,
   });
 }
 

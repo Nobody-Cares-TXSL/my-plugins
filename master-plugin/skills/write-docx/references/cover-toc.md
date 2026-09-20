@@ -12,6 +12,8 @@
 - `HeightRule.EXACT` 防止内容撑开行高导致上下不对齐
 - 标签用空格填充到等宽（如 `"学       院："`），配合固定列宽实现对齐效果
 
+⚠️ 固定列宽必须由 `Table({ columnWidths: [标签列, 值列] })` 提供，只在 cell 上写 `width` 会让 `tblGrid` 退化成 `gridCol w="100"`，值列被压塌、课题名折行（见 [[references/tables.md]] 的 columnWidths 一节）。
+
 ## 封面校徽
 
 内置校徽资源：`references/assets/school.png`（陕西科技大学镐京学院）。
