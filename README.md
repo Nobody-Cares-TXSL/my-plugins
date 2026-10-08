@@ -1,12 +1,12 @@
-# My Claude Code Plugins
+# My Plugins
 
-个人 Claude Code 插件集合。
+个人插件集合(兼容Claude 和 Codex)。
 
 ## 仓库结构
 
 ```
 .
-├── .cb-plugin/marketplace.json   # Cb Code 市场清单（owner + 插件列表）
+├── .claude-plugin/marketplace.json   # Claude Code 市场清单（owner + 插件列表）
 ├── .agents/plugins/marketplace.json  # Codex 市场清单（repo 市场）
 └── master-plugin/                     # 唯一的子插件
     ├── .claude-plugin/plugin.json    # 插件清单
