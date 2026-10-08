@@ -8,24 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## 仓库结构
 
-```
-.
-├── .claude-plugin/marketplace.json   # 市场清单（owner + 插件列表）
-└── master-plugin/                     # 唯一的子插件
-    ├── .claude-plugin/plugin.json    # 插件清单
-    ├── commands/                      # 平面 Markdown skills（旧风格）
-    │   ├── explain.md                 #   代码解释（含库函数说明）
-    │   └── push.md                    #   约定式提交 + 推送
-    └── skills/                         # 目录型 skills
-        ├── deep-read/SKILL.md          #   智能阅读助手
-        ├── update-all/SKILL.md         #   工具链一键更新
-        │   ├── commands-desc.txt       #     opencode 命令中文描述映射
-        │   └── scripts/*.sh            #     各组件更新脚本
-        ├── auto_answer/SKILL.md        #   基于 opencli browser 的自动答题
-        ├── write-docx/SKILL.md         #   docx.js 中文 Word 生成最佳实践
-        │   └── references/              #     字体/行距/表格/图片/公式/封面等专题
-        └── update-my-plugins/SKILL.md  #   优化技能 → 同步文档 → 提交推送 → 更新本地
-```
+目录树统一维护在 [README.md 的仓库结构章节](README.md#仓库结构)。
 
 ## 常用命令
 
@@ -41,7 +24,7 @@ claude plugin validate ./master-plugin
 /plugin install master-plugin
 claude plugin update master-plugin
 
-# 重新加载（修改 skill/command 后）
+# 重新加载（修改 skill 后）
 /reload-plugins
 ```
 
@@ -50,7 +33,7 @@ claude plugin update master-plugin
 - 每次git推送后都读取 `.claude-plugin/plugin.json`，将 `version` 字段的 PATCH 版本号 +1（如 `1.0.1` → `1.0.2`），写回文件。必须 bump 版本号，否则 Claude Code CLI 因缓存键不变而无法检测到更新。
 - 新组件放 `skills/<name>/SKILL.md`（目录型），不用 `commands/`
 - SKILL.md frontmatter：`description` 必填，`allowed-tools` 按需声明
-- push command 依赖约定式提交规范（Conventional Commits），需用户两次确认（commit + push）
+- push skill 依赖约定式提交规范（Conventional Commits），需用户两次确认（commit + push）
 - update-all 的 shell 脚本位于 `skills/update-all/scripts/`，使用 `set -euo pipefail`
 - update-my-plugins 流程：优化技能 → 同步 CLAUDE.md/README.md → bump 版本 → push → 更新本地插件
 - 所有需要网络的脚本设置 `http_proxy/https_proxy=http://127.0.0.1:7890`

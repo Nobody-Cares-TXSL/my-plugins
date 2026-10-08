@@ -1,0 +1,16 @@
+{
+  "name": "master-plugin",
+  "version": "1.0.22",
+  "description": "个人工具集：代码解释、规范提交、智能阅读、Word文档生成、一键更新工具链",
+  "author": {
+    "name": "Nobody-Cares-TXSL"
+  },
+  "homepage": "https://github.com/Nobody-Cares-TXSL/my-plugins",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Master Plugin",
+    "shortDescription": "个人代码、阅读、文档和工具链技能",
+    "developerName": "Nobody-Cares-TXSL",
+    "category": "Developer Tools"
+  }
+}

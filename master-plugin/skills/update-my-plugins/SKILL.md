@@ -13,13 +13,13 @@ allowed-tools:
 
 # update-my-plugins — 技能优化与发布
 
-优化 my-plugins 中的 skill/command，提交推送后更新本地插件。
+优化 my-plugins 中的 skill，提交推送后更新本地插件。
 
 ## 参数解析
 
 `$ARGUMENTS` 格式：`<技能名> <优化说明>`
 
-- 第一个参数：技能名（`skills/` 或 `commands/` 下的名称，如 `deep-read`、`push`）
+- 第一个参数：技能名（`skills/` 下的名称，如 `deep-read`、`push`）
 - 第二个参数：对优化的描述（剩余所有文字）
 
 若参数不完整或无法区分，用 AskUserQuestion 向用户确认。
@@ -30,9 +30,8 @@ allowed-tools:
 
 在 `/home/duan/plugins/` 仓库中查找对应的技能文件：
 
-- 先查 `skills/<技能名>/SKILL.md`（skill）
-- 再查 `commands/<技能名>.md`（command）
-- 都找不到则报错并终止
+- 查 `master-plugin/skills/<技能名>/SKILL.md`
+- 找不到则报错并终止
 
 ### 2. 阅读并优化
 
@@ -56,7 +55,7 @@ allowed-tools:
 
 ### 5. 提交推送
 
-调用 `/push` 命令进行提交推送：
+调用 `push` 技能进行提交推送（Claude Code CLI 使用 `/master-plugin:push`，Codex 使用 `$push`）：
 
 推送成功后继续下一步。
 
