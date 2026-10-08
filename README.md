@@ -6,7 +6,8 @@
 
 ```
 .
-├── .claude-plugin/marketplace.json   # 市场清单（owner + 插件列表）
+├── .cb-plugin/marketplace.json   # Cb Code 市场清单（owner + 插件列表）
+├── .agents/plugins/marketplace.json  # Codex 市场清单（repo 市场）
 └── master-plugin/                     # 唯一的子插件
     ├── .claude-plugin/plugin.json    # 插件清单
     ├── .codex-plugin/plugin.json     # Codex 插件清单
