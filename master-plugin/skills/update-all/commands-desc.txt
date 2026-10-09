@@ -13,7 +13,7 @@ auto_answer|基于 opencli browser 的自动答题技能，绑定浏览器标签
 deep-read|智能阅读助手，按文档类型自动选择压缩策略，用于快速阅读、学习新领域知识或处理大段文本
 opencli-browser-sitemap|使用 opencli browser 驱动网站时按需加载站点地图，引导智能体惰性消费 sitemap、选择适配器/浏览器回退路径、从状态签名恢复，标记过期条目
 opencli-sitemap-author|创建或维护 OpenCLI 站点地图：为智能体记录页面导航、状态、操作、工作流、API 参考、陷阱及回退知识，用于浏览器探索后发现持久站点上下文或站点地图过期时
-update-all|一键更新所有已启用的 Claude Code 插件、opencli、agent-reach、notebooklm、opencode 并同步 Obsidian 文档
+update-all|一键更新所有已启用的 Claude Code 插件、opencli、agent-reach、notebooklm、opencode 并同步 Obsidian 文档；也可传组件名只更新单个组件
 update-my-plugins|优化 my-plugins 中的技能并推送更新到 GitHub，随后更新本地插件
 write-docx|使用 docx.js 生成中文 Word 文档，覆盖字体、行距、表格、图片、公式、页眉页脚、封面、目录等常见问题
 grilling|对用户的计划、决策或想法进行穷追不舍的盘问，用于用户想压力测试自己的思路或使用 'grill' 触发词时。
