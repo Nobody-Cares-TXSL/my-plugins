@@ -18,3 +18,15 @@ update-my-plugins|优化 my-plugins 中的技能并推送更新到 GitHub，随�
 write-docx|使用 docx.js 生成中文 Word 文档，覆盖字体、行距、表格、图片、公式、页眉页脚、封面、目录等常见问题
 grilling|对用户的计划、决策或想法进行穷追不舍的盘问，用于用户想压力测试自己的思路或使用 'grill' 触发词时。
 grill-me|一场穷追不舍的访谈，用来打磨计划或设计。
+api-design|REST API 设计模式，涵盖资源命名、状态码、分页、过滤、错误响应、版本控制与限流，用于设计或评审 REST 端点。
+better-auth-best-practices|配置 Better Auth 服务端与客户端、数据库适配器、会话管理、插件及环境变量，用于 TypeScript 邮箱/密码或 OAuth 认证。
+explain|解释用户选中的代码，按执行流程说明逻辑、分支、边界条件及直接调用的库函数。
+git-flow-branch-creator|智能 Git Flow 分支创建器，分析 git 状态/差异并按 nvie Git Flow 模型创建合适分支。
+improve-codebase-architecture|扫描代码库寻找改进机会，生成可视化 HTML 报告，并深入探讨所选方案。
+java-coding-standards|Spring Boot 与 Quarkus 服务的 Java 编码规范：命名、不可变性、Optional、流、异常、泛型、CDI、响应式及项目结构，自动套用框架约定。
+java-springboot|获取 Spring Boot 应用开发的最佳实践。
+mysql-patterns|生产环境 MySQL/MariaDB 的建表、查询、索引、事务、复制与连接池模式，用于设计表结构索引或排查查询/事务/副本延迟。
+push|用户要求创建 Git 提交或推送时，按约定式提交规范分析变更、拟定提交信息，并分别确认提交和推送。
+setup-matt-pocock-skills|为工程类技能配置仓库：初始化 issue 跟踪、标签词表与领域文档布局，首次使用其他工程技能前运行一次。
+tdd|测试驱动开发，用于先写测试构建功能或修复 bug、"红-绿-重构"流程或集成测试场景。
+vue-patterns|Vue 3 组合式 API 模式、组件架构、响应式最佳实践、Pinia 状态管理、Vue Router 导航与 Nuxt SSR 模式，适用于 Vue/Nuxt/Vite/Pinia 项目。
