@@ -4,7 +4,7 @@
     "name": "Nobody-Cares-TXSL"
   },
   "displayName": "Master Plugin",
-  "version": "1.0.24",
+  "version": "1.0.25",
   "description": "个人工具集：代码解释、规范提交、智能阅读、Word文档生成、一键更新工具链",
   "keywords": [
     "commands",

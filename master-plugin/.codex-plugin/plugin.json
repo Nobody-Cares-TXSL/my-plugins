@@ -1,6 +1,6 @@
 {
   "name": "master-plugin",
-  "version": "1.0.24",
+  "version": "1.0.25",
   "description": "个人工具集：代码解释、规范提交、智能阅读、Word文档生成、一键更新工具链",
   "author": {
     "name": "Nobody-Cares-TXSL"
