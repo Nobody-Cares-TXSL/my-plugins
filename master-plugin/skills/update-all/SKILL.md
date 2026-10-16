@@ -188,7 +188,7 @@ bash {skillDir}/scripts/snapshot.sh after
 4. **下载**：`bash {skillDir}/scripts/check-hard-updates.sh --download <url>`（下载到 `~/下载`，**不安装**）
 5. **用户手动安装**：脚本给出安装命令，由用户执行（多数需 sudo）
 
-> `自更新` 标记的软件（uv/magpie/rustup 等）应走自带命令，不用手动换二进制。
+> 更新方式有三类：`自更新`（uv/magpie/rustup 等，走自带命令）、`cargo 更新`（`~/.cargo/bin/` 下的，用 `cargo install <名> --locked`）、`手动下载`（下 release 包后手动装）。后两类不用手动换二进制以外的方式。
 
 ### 完成提示
 

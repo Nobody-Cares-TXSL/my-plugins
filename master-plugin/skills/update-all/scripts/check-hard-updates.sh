@@ -38,6 +38,15 @@ has_self_update() {
   return 1
 }
 
+# 判断更新方式：自更新 / cargo 更新 / 手动下载
+update_method() {
+  local name="$1" path="$2"
+  if has_self_update "$name"; then echo "自更新"
+  elif [[ "$path" == *"/.cargo/bin/"* ]]; then echo "cargo 更新"
+  else echo "手动下载"
+  fi
+}
+
 discover() {
   printf '%-14s %-38s %-10s %-6s %s\n' "软件" "路径" "版本" "属主" "更新方式"
   printf '%-14s %-38s %-10s %-6s %s\n' "----" "----" "----" "----" "--------"
@@ -49,7 +58,7 @@ discover() {
       name=$(basename "$f")
       ver=$(probe_version "$f")
       owner=$(stat -c '%U' "$f" 2>/dev/null || echo "?")
-      if has_self_update "$name"; then how="自更新"; else how="手动下载"; fi
+      how=$(update_method "$name" "$f")
       printf '%-14s %-38s %-10s %-6s %s\n' "$name" "$f" "$ver" "$owner" "$how"
     done
   done
