@@ -2,7 +2,7 @@
 # update-agent-reach.sh — 更新 agent-reach CLI 并同步 skill 文件
 set -euo pipefail
 
-: "${TMPDIR:=/tmp}"
+TMPDIR="${TMPDIR:-$HOME/.cache/tmp}"
 
 export http_proxy=http://127.0.0.1:7890
 export https_proxy=http://127.0.0.1:7890

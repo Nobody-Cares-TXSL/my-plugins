@@ -42,11 +42,11 @@ allowed-tools:
 2. **Claude Code 插件** — update-plugins.sh
 3. **opencode CLI** — update-opencode.sh（curl 二进制更新）
 4. **opencode commands** — update-opencode-commands.sh
-5. **opencli** — update-opencli.sh（含 nvm 加载）
-6. **agent-reach** — update-agent-reach.sh
-7. **notebooklm** — update-notebooklm.sh（pipx upgrade + skill install）
-8. **npm 全局包** — update-npm.sh
-9. **pipx 包** — update-pipx.sh
+5. **npm 全局包** — update-npm.sh（须在 opencli 之前）
+6. **pipx 包** — update-pipx.sh（须在 agent-reach/notebooklm 之前）
+7. **opencli** — update-opencli.sh（含 nvm 加载；npm 全量已跑过，此处为 no-op）
+8. **agent-reach** — update-agent-reach.sh（pipx 全量已跑过，此处为 no-op）
+9. **notebooklm** — update-notebooklm.sh（同上）
 10. **版本快照（更新后）+ 对比** — snapshot.sh after，输出变更摘要
 11. **更新 Obsidian 文档** — README.md
 
@@ -92,26 +92,6 @@ bash {skillDir}/scripts/update-opencode.sh
 bash {skillDir}/scripts/update-opencode-commands.sh
 ```
 
-#### opencli CLI + Skills
-
-```bash
-bash {skillDir}/scripts/update-opencli.sh
-```
-
-> 脚本内部已包含 nvm 加载逻辑，无需手动 source。
-
-#### agent-reach
-
-```bash
-bash {skillDir}/scripts/update-agent-reach.sh
-```
-
-#### notebooklm
-
-```bash
-bash {skillDir}/scripts/update-notebooklm.sh
-```
-
 #### npm 全局包
 
 ```bash
@@ -124,13 +104,39 @@ bash {skillDir}/scripts/update-npm.sh
 bash {skillDir}/scripts/update-pipx.sh
 ```
 
+#### opencli CLI + Skills
+
+```bash
+bash {skillDir}/scripts/update-opencli.sh
+```
+
+> 脚本内部已包含 nvm 加载逻辑，无需手动 source。npm 全量已在前一步跑过，此处的 `npm update -g @jackwener/opencli` 通常为 no-op。
+
+#### agent-reach
+
+```bash
+bash {skillDir}/scripts/update-agent-reach.sh
+```
+
+> pipx 全量已跑过，此处的 `pipx upgrade agent-reach` 通常为 no-op。
+
+#### notebooklm
+
+```bash
+bash {skillDir}/scripts/update-notebooklm.sh
+```
+
+> 同上，`pipx upgrade notebooklm-py` 通常为 no-op。
+
 #### 版本快照（更新后）
 
 ```bash
 bash {skillDir}/scripts/snapshot.sh after
 ```
 
-**对比两次快照**，输出变更摘要（使用 `⬆️` 标记升级、`✅` 标记无变化）。检测 [opencli 生态] 组是否有新/移除的 skill（独立 skill 由各自来源管理，不计入 opencli 变更）。
+**对比两次快照**，输出变更摘要（使用 `⬆️` 标记升级、`✅` 标记无变化、`⚠️` 标记跨大版本升级）。检测 [opencli 生态] 组是否有新/移除的 skill（独立 skill 由各自来源管理，不计入 opencli 变更）。
+
+两次快照同时落盘在 `$TMPDIR/update-all-snapshot-{before,after}.txt`（TMPDIR 为空时为 `~/.cache/tmp/`），上下文丢失时可直接读文件对比。
 
 ### 文档更新
 
@@ -153,6 +159,7 @@ bash {skillDir}/scripts/snapshot.sh after
 - 先 Read 文件再 Edit，保持格式一致
 - 无变更的工具至少更新日期
 - 不要写 `### v1.xx 主要更新` 版本更新日志段落
+- **改完自检**：复核关键版本号与统计数字已同步，避免漏改
 
 ### 完成提示
 

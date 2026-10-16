@@ -48,5 +48,5 @@ claude plugin update master-plugin
 | agent-reach skill | `~/.claude/skills/agent-reach/` | pipx upgrade + skill install |
 | notebooklm | pipx venv + `~/.claude/skills/notebooklm/` | pipx upgrade + skill install |
 | opencode CLI | `~/.opencode/bin/opencode` | `opencode upgrade --method curl` |
-| npm 全局包 | `~/.nvm/versions/node/*/lib/node_modules` | `npm update -g` |
+| npm 全局包 | `~/.nvm/versions/node/*/lib/node_modules` | `npm update -g`（npm/pnpm/corepack 锁定大版本） |
 | pipx 包 | `~/.local/share/pipx/venvs` | `pipx upgrade-all` |

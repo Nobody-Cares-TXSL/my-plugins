@@ -3,8 +3,6 @@
 # 中文描述从 commands-desc.txt 读取，skill 名称从 SKILL.md frontmatter 提取
 set -euo pipefail
 
-: "${TMPDIR:=/tmp}"
-
 OCCONFIG="$HOME/.config/opencode/opencode.jsonc"
 CLAUDE_SKILLS="$HOME/.claude/skills"
 AGENTS_SKILLS="$HOME/.agents/skills"

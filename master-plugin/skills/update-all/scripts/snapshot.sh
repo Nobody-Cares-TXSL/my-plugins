@@ -3,8 +3,6 @@
 # 用法: bash snapshot.sh [before|after]
 set -euo pipefail
 
-: "${TMPDIR:=/tmp}"
-
 export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
 
@@ -13,6 +11,11 @@ SETTINGS="$HOME/.claude/settings.json"
 PLUGINS="$HOME/.claude/plugins/installed_plugins.json"
 AGENT_SKILLS="$HOME/.agents/skills"
 REACH_SKILL="$HOME/.claude/skills/agent-reach"
+
+# 落盘：输出同时写入文件，供更新后对比（防上下文丢失）
+SNAP_FILE="${TMPDIR:-$HOME/.cache/tmp}/update-all-snapshot-$LABEL.txt"
+mkdir -p "$(dirname "$SNAP_FILE")"
+exec > >(tee "$SNAP_FILE")
 
 echo "=== 版本快照 ($LABEL) ==="
 echo ""

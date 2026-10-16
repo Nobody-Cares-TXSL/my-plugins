@@ -2,7 +2,7 @@
 # update-opencli.sh — 更新 opencli CLI 并同步 skills
 set -euo pipefail
 
-: "${TMPDIR:=/tmp}"
+TMPDIR="${TMPDIR:-$HOME/.cache/tmp}"
 
 export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
