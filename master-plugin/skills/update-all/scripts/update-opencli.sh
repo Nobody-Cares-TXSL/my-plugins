@@ -37,7 +37,9 @@ get_skill_names() {
 }
 
 REMOTE=$(get_skill_names "$TMPDIR_OPENCLI/skills" | sort)
-LOCAL=$(get_skill_names "$AGENT_SKILLS" | sort)
+# 本地只统计 opencli 生态的 skill（opencli-* 前缀 + smart-search），
+# 避免把独立 skill（find-skills、tdd 等）误判为"已移除"
+LOCAL=$(get_skill_names "$AGENT_SKILLS" | grep -E '^(opencli-|smart-search$)' | sort)
 
 # 检测增删
 ADDED=$(comm -23 <(echo "$REMOTE") <(echo "$LOCAL") | tr '\n' ' ')
