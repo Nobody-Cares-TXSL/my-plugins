@@ -30,7 +30,7 @@ claude plugin update master-plugin
 
 ## 开发约定
 
-- 每次git推送后都读取 `.claude-plugin/plugin.json`，将 `version` 字段的 PATCH 版本号 +1（如 `1.0.1` → `1.0.2`），写回文件。必须 bump 版本号，否则 Claude Code CLI 因缓存键不变而无法检测到更新。
+- 每次git推送后都读取 `.claude-plugin/plugin.json` **和** `.codex-plugin/plugin.json`，将两者的 `version` 字段 PATCH 版本号 +1（如 `1.0.1` → `1.0.2`），写回文件。**两个清单必须同步 bump**，否则两个 agent 看到的版本号不一致；Claude Code CLI 还会因缓存键不变而无法检测到更新。
 - 新组件放 `skills/<name>/SKILL.md`（目录型），不用 `commands/`
 - SKILL.md frontmatter：`description` 必填，`allowed-tools` 按需声明
 - push skill 依赖约定式提交规范（Conventional Commits），需用户两次确认（commit + push）
