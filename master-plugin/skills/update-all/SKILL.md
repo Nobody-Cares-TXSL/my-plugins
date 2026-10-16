@@ -31,12 +31,13 @@ allowed-tools:
 | `notebooklm` | `update-notebooklm.sh` | notebooklm CLI + skill |
 | `npm` | `update-npm.sh` | npm 全局包 |
 | `pipx` | `update-pipx.sh` | pipx 安装的 CLI |
+| `hard` | `check-hard-updates.sh` | 散装二进制（只检查，需手动安装） |
 
 ## 全量流程（无参数）
 
 ### 任务追踪
 
-开始前，用 TaskCreate 创建以下 11 个任务，按顺序逐步 TaskUpdate 为 in_progress → completed：
+开始前，用 TaskCreate 创建以下 12 个任务，按顺序逐步 TaskUpdate 为 in_progress → completed：
 
 1. **版本快照（更新前）** — snapshot.sh before，保存 UPDATE_BEFORE
 2. **Claude Code 插件** — update-plugins.sh
@@ -47,8 +48,9 @@ allowed-tools:
 7. **opencli** — update-opencli.sh（含 nvm 加载；npm 全量已跑过，此处为 no-op）
 8. **agent-reach** — update-agent-reach.sh（pipx 全量已跑过，此处为 no-op）
 9. **notebooklm** — update-notebooklm.sh（同上）
-10. **版本快照（更新后）+ 对比** — snapshot.sh after，输出变更摘要
-11. **更新 Obsidian 文档** — README.md
+10. **散装二进制检查** — check-hard-updates.sh（只读扫描 + 查最新版 + AskUserQuestion 让用户选 + 下载到 ~/下载，**由用户手动安装**）
+11. **版本快照（更新后）+ 对比** — snapshot.sh after，输出变更摘要
+12. **更新 Obsidian 文档** — README.md
 
 完成后输出 reload 提示。
 
@@ -64,6 +66,7 @@ allowed-tools:
 - `update-pipx.sh` — pipx 安装的 CLI
 - `update-opencode.sh` — opencode CLI 二进制更新
 - `update-opencode-commands.sh` — opencode.jsonc commands 同步（中文描述映射见 `commands-desc.txt`）
+- `check-hard-updates.sh` — 发现散装二进制（apt/npm/pipx 管不到的），只读检查 + 通用下载器；**不自动安装**
 
 ### 执行命令
 
@@ -128,6 +131,20 @@ bash {skillDir}/scripts/update-notebooklm.sh
 
 > 同上，`pipx upgrade notebooklm-py` 通常为 no-op。
 
+#### 散装二进制检查
+
+```bash
+bash {skillDir}/scripts/check-hard-updates.sh
+```
+
+列出候选后，对每个查上游最新版，用 AskUserQuestion 让用户勾选要更新的，再逐个下载：
+
+```bash
+bash {skillDir}/scripts/check-hard-updates.sh --download <url>
+```
+
+> **不自动安装**——下载到 `~/下载` 后由用户手动执行安装命令（多数需 sudo）。
+
 #### 版本快照（更新后）
 
 ```bash
@@ -160,6 +177,18 @@ bash {skillDir}/scripts/snapshot.sh after
 - 无变更的工具至少更新日期
 - 不要写 `### v1.xx 主要更新` 版本更新日志段落
 - **改完自检**：复核关键版本号与统计数字已同步，避免漏改
+
+## 散装二进制（apt/npm/pipx 管不到的）
+
+这些软件只能手动换二进制（如 fd、lazygit、yazi、starship、rtk、anki、px0）。流程：
+
+1. **发现**：`bash {skillDir}/scripts/check-hard-updates.sh`（只读，列出候选 + 当前版本 + 属主 + 更新方式）
+2. **查最新版**：对每个候选查上游最新版（GitHub releases）
+3. **让用户选**：用 AskUserQuestion 列出可更新项，用户勾选
+4. **下载**：`bash {skillDir}/scripts/check-hard-updates.sh --download <url>`（下载到 `~/下载`，**不安装**）
+5. **用户手动安装**：脚本给出安装命令，由用户执行（多数需 sudo）
+
+> `自更新` 标记的软件（uv/magpie/rustup 等）应走自带命令，不用手动换二进制。
 
 ### 完成提示
 
