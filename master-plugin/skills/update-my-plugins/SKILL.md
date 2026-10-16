@@ -15,6 +15,11 @@ allowed-tools:
 
 优化 my-plugins 中的 skill，提交推送后更新本地插件。
 
+## 输入与工具
+
+- Claude Code CLI：从 `$ARGUMENTS` 读取技能名与优化说明；使用 Read、Edit、Write、Bash；用 AskUserQuestion 确认；调用 `push` 技能时写 `/master-plugin:push`；用 `claude plugin update master-plugin@my-plugins` 更新本地插件。
+- Codex：从用户消息读取技能名与优化说明，不依赖 `$ARGUMENTS` 自动展开；使用当前环境提供的读写、命令执行工具；确认使用支持审批的工具或直接在对话中询问，没有回复就等待，不将默认选项或超时视为同意；调用 `push` 技能时写 `$push`；用 `codex plugin add master-plugin@my-plugins` 重新安装以刷新本地缓存（Codex 无 update 子命令，本地市场靠重装更新）。
+
 ## 参数解析
 
 `$ARGUMENTS` 格式：`<技能名> <优化说明>`
@@ -51,7 +56,7 @@ allowed-tools:
 
 ### 4. 更新版本号
 
-读取 `.claude-plugin/plugin.json`，将 `version` 字段的 PATCH 版本号 +1（如 `1.0.1` → `1.0.2`），写回文件。必须 bump 版本号，否则 Claude Code CLI 因缓存键不变而无法检测到更新。
+读取 `.claude-plugin/plugin.json` **和** `.codex-plugin/plugin.json`，将两者的 `version` 字段 PATCH 版本号 +1（如 `1.0.1` → `1.0.2`），写回文件。**两个清单必须同步 bump**，否则两个 agent 看到的版本号不一致；Claude Code CLI 还会因缓存键不变而检测不到更新。
 
 ### 5. 提交推送
 
@@ -61,11 +66,19 @@ allowed-tools:
 
 ### 6. 更新本地插件
 
+**Claude Code CLI**：
+
 ```bash
 claude plugin update master-plugin@my-plugins 2>&1
 ```
 
-如果更新失败（如已是最新版本），忽略错误继续。
+**Codex**（无 update 子命令，本地市场靠重装刷新缓存）：
+
+```bash
+codex plugin add master-plugin@my-plugins 2>&1
+```
+
+更新失败（如已是最新版本）时忽略错误继续。
 
 ## 完成
 
