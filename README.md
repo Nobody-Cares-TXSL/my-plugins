@@ -21,7 +21,8 @@
         ├── auto_answer/SKILL.md        #   基于 opencli browser 的自动答题
         ├── write-docx/SKILL.md         #   docx.js 中文 Word 生成最佳实践
         │   └── references/              #     字体/行距/表格/图片/公式/封面等专题
-        └── update-my-plugins/SKILL.md  #   优化技能 → 同步文档 → 提交推送 → 更新本地
+        ├── update-my-plugins/SKILL.md  #   优化技能 → 同步文档 → 提交推送 → 更新本地
+        └── distill-session/SKILL.md    #   复盘会话摩擦 → 归类 → 生成插件优化清单
 ```
 
 ## 安装
@@ -46,3 +47,4 @@
 | `auto_answer` | skill | 基于 opencli browser 的自动答题，绑定浏览器标签页读取题目并一次性作答 |
 | `write-docx` | skill | docx.js 生成中文 Word 文档的最佳实践，含字体、行距、表格、图片、公式、页眉页脚等格式指南与踩坑速查 |
 | `update-my-plugins` | skill | 优化 my-plugins 中的技能，同步仓库文档，推送更新到 GitHub，然后更新本地插件，兼容 Claude Code CLI 和 Codex |
+| `distill-session` | skill | 复盘当前会话中调用插件的摩擦，归类为插件/模型/环境问题，生成插件优化清单并逐条确认修复，兼容 Claude Code CLI 和 Codex |

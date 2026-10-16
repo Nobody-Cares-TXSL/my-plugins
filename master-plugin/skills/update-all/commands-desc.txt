@@ -30,3 +30,4 @@ push|用户要求创建 Git 提交或推送时，按约定式提交规范分析�
 setup-matt-pocock-skills|为工程类技能配置仓库：初始化 issue 跟踪、标签词表与领域文档布局，首次使用其他工程技能前运行一次。
 tdd|测试驱动开发，用于先写测试构建功能或修复 bug、"红-绿-重构"流程或集成测试场景。
 vue-patterns|Vue 3 组合式 API 模式、组件架构、响应式最佳实践、Pinia 状态管理、Vue Router 导航与 Nuxt SSR 模式，适用于 Vue/Nuxt/Vite/Pinia 项目。
+distill-session|复盘当前会话中调用插件的摩擦，归类为插件/模型/环境问题，生成插件优化清单并逐条确认修复。
