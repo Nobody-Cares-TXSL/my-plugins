@@ -104,4 +104,23 @@ else
 fi
 
 echo ""
+
+# npm 全局包
+echo "--- npm global packages ---"
+if command -v npm &>/dev/null; then
+  npm ls -g --depth=0 2>/dev/null | tail -n +2 | sed 's/^/  /'
+else
+  echo "  not installed"
+fi
+echo ""
+
+# pipx
+echo "--- pipx ---"
+if command -v pipx &>/dev/null; then
+  pipx list --short 2>/dev/null | sed 's/^/  /'
+else
+  echo "  not installed"
+fi
+
+echo ""
 echo "=== 快照结束 ($LABEL) ==="
