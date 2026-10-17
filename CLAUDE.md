@@ -36,6 +36,7 @@ claude plugin update master-plugin
 - push skill 依赖约定式提交规范（Conventional Commits），需用户两次确认（commit + push）
 - update-all 的 shell 脚本位于 `skills/update-all/scripts/`，使用 `set -euo pipefail`
 - update-my-plugins 流程：优化技能 → 同步 CLAUDE.md/README.md → bump 版本 → push → 更新本地插件
+- sync-statusline 的 shell 脚本位于 `skills/sync-statusline/scripts/`，用 `set -euo pipefail`；中文显示文本维护在同目录 `labels.txt`（`<命令名><TAB><显示文本>`，`#` 分组），命令名由脚本自动扫描，新增命令时补一行映射
 - 所有需要网络的脚本设置 `http_proxy/https_proxy=http://127.0.0.1:7890`
 
 ## 外部工具链路径（update-all 维护）

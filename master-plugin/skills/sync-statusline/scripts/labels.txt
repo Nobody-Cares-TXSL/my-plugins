@@ -1,0 +1,27 @@
+# statusline 斜杠命令显示文本映射
+# 格式：命令名<TAB>显示文本
+#   命令名   = 源码里 command.register({name}) 的值，或本插件技能目录名
+#   显示文本 = 状态栏里显示的内容（含参数提示与中文说明）
+#
+# 本文件同时决定【显示文本】和【显示顺序】：行序即状态栏里的顺序。
+# 分节标记决定命令归到状态栏哪一行：
+#   # --- mods ---    外部 mod 的命令 -> statusline 第 2 行
+#   # --- plugin ---  本插件技能     -> statusline 第 3 行
+# 未出现在本文件的命令会被脚本追加到对应行末尾（兜底显示 /命令名）。
+#
+# 注意：源码里的 description 是写给模型读的英文长句，不适合放状态栏，
+#       显示文本需人工润色成简短中文。
+
+# --- mods ---
+files	/files [目录|文件]:项目文件浏览器
+md	/md <路径>:md 阅读器
+mission	/mission [who|code]:代理关系图
+radar	/radar:子代理监控
+
+# --- plugin ---
+explain	/explain:解释选中代码
+deep-read	/deep-read:智能阅读
+write-docx	/write-docx:Word 文档
+distill-session	/distill-session:复盘会话
+auto_answer	/auto_answer:自动答题
+sync-statusline	/sync-statusline:同步状态栏命令

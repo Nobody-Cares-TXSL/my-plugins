@@ -22,7 +22,9 @@
         ├── write-docx/SKILL.md         #   docx.js 中文 Word 生成最佳实践
         │   └── references/              #     字体/行距/表格/图片/公式/封面等专题
         ├── update-my-plugins/SKILL.md  #   优化技能 → 同步文档 → 提交推送 → 更新本地
-        └── distill-session/SKILL.md    #   复盘会话摩擦 → 归类 → 生成插件优化清单
+        ├── distill-session/SKILL.md    #   复盘会话摩擦 → 归类 → 生成插件优化清单
+        └── sync-statusline/SKILL.md    #   同步状态栏的斜杠命令速查行
+            └── scripts/                 #     扫描脚本 + 中文说明映射表
 ```
 
 ## 安装
@@ -48,3 +50,4 @@
 | `write-docx` | skill | docx.js 生成中文 Word 文档的最佳实践，含字体、行距、表格、图片、公式、页眉页脚等格式指南与踩坑速查 |
 | `update-my-plugins` | skill | 优化 my-plugins 中的技能，同步仓库文档，推送更新到 GitHub，然后更新本地插件，兼容 Claude Code CLI 和 Codex |
 | `distill-session` | skill | 复盘当前会话中调用插件的摩擦，归类为插件/模型/环境问题，生成插件优化清单并逐条确认修复，兼容 Claude Code CLI 和 Codex |
+| `sync-statusline` | skill | 同步 `~/.claude/statusline.zsh` 的斜杠命令速查行：命令名自动扫描（已启用的 mod 与插件技能），中文说明人工维护（`scripts/labels.txt` 映射表），保证状态栏与实际可用命令一致 |
