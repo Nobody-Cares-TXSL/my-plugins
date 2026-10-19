@@ -22,7 +22,7 @@
         ├── write-docx/SKILL.md         #   docx.js 中文 Word 生成最佳实践
         │   └── references/              #     字体/行距/表格/图片/公式/封面等专题
         ├── update-my-plugins/SKILL.md  #   优化技能 → 同步文档 → 提交推送 → 更新本地
-        ├── distill-session/SKILL.md    #   复盘会话摩擦 → 归类 → 生成插件优化清单
+        ├── distill-session/SKILL.md    #   复盘会话摩擦 → 归类 → 七维度定位 → 生成优化清单
         └── sync-statusline/SKILL.md    #   同步状态栏的斜杠命令速查行
             └── scripts/                 #     扫描脚本 + 中文说明映射表
 ```
