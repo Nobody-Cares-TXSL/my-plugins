@@ -1,3 +1,5 @@
+import { register as registerHtmlLink } from './html-link.js'
+
 const PANE = 'prompt-library'
 
 // 这些值只用于当前面板；重新打开命令时从磁盘加载，不保存用户数据。
@@ -105,6 +107,9 @@ async function fillPrompt($, prompt, mode) {
 
 export function register(on, options) {
   const configuredDirectory = options.promptsDirectory || '~/.claude/prompts'
+
+  // 每个插件只允许一个 hooks 模块，所以 html-link 从本文件挂上去
+  registerHtmlLink(on)
 
   on('session.start', async ($, e, next) => {
     await $.command.register({
