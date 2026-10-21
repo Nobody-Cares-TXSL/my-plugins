@@ -4,8 +4,16 @@
     "name": "Nobody-Cares-TXSL"
   },
   "displayName": "Master Plugin",
-  "version": "1.0.34",
+  "version": "2.0.0",
   "description": "个人工具集：代码解释、规范提交、智能阅读、Word文档生成、一键更新工具链",
+  "userConfig": {
+    "promptsDirectory": {
+      "type": "string",
+      "title": "Prompt 库目录",
+      "description": "存放 Markdown 提示词的绝对路径，也支持 ~/。支持子文件夹浏览和全文搜索。",
+      "default": "~/.claude/prompts"
+    }
+  },
   "keywords": [
     "commands",
     "skills",

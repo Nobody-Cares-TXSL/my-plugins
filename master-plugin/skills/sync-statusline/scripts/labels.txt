@@ -17,6 +17,7 @@ files	/files [目录|文件]:项目文件浏览器
 md	/md <路径>:md 阅读器
 mission	/mission [who|code]:代理关系图
 radar	/radar:子代理监控
+prompts	/prompts [关键词]:提示词库
 
 # --- plugin ---
 explain	/explain:解释选中代码

@@ -11,6 +11,10 @@
 └── master-plugin/                     # 唯一的子插件
     ├── .claude-plugin/plugin.json    # 插件清单
     ├── .codex-plugin/plugin.json     # Codex 插件清单
+    ├── hooks/                          # Claude Code Mod
+    │   ├── hooks.json                 #   Mod 入口声明
+    │   ├── prompts.js                 #   Prompt Library 面板
+    │   └── README.md                  #   mod 说明
     └── skills/                         # 目录型 skills
         ├── explain/SKILL.md            #   代码解释（Claude Code CLI / Codex）
         ├── push/SKILL.md               #   约定式提交 + 推送（Claude Code CLI / Codex）
@@ -43,6 +47,7 @@
 
 | 组件 | 类型 | 说明 |
 |------|------|------|
+| `prompts` | Claude Code mod | `/prompts [关键词]` 浏览文件夹、搜索提示词、预览 frontmatter，并将全文填入输入框，手动发送 |
 | `explain` | skill | 解释选中的代码，包含库函数简要说明，兼容 Claude Code CLI 和 Codex |
 | `push` | skill | 按约定式提交规范创建提交并推送，兼容 Claude Code CLI 和 Codex |
 | `deep-read` | skill | 智能阅读助手，压缩文本的同时辅助理解 |
