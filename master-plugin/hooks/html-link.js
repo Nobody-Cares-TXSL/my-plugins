@@ -3,6 +3,7 @@
 
 const MAX_LINKS = 20
 const cwdOf = new Map() // requestId → 首次绘制时的 cwd：cd 之后旧消息里的相对路径不漂移
+const known = new Set() // 已确认存在的路径：每个文件每会话只 stat 一次，重绘不产生 IO
 
 // ---- 以下为路径解析与文本链接化的纯函数：无副作用，不碰 $ ----
 
@@ -10,9 +11,10 @@ const HTML = /\.html?$/i
 // 门禁用：只看「这段文本里可能提到 html 路径」，不锚定结尾
 const MAYBE_HTML = /\.html?\b/i
 
-// 行内代码、markdown 链接/图片、URL，或裸的 .html 路径（含中文紧邻、:line 后缀）。
+// 行内代码、markdown 链接/图片、URL、或裸的 .html 路径（含中文紧邻、:line 后缀）。
+// URL 单独成一个捕获组：裸写的 file:// 是绝对路径，比相对路径可靠得多，不能当普通 URL 丢掉。
 const TOKEN =
-  /(`+)([^`\n]+?)\1|(!?)\[([^\]\n]*)\]\(<?([^)\s>]+)>?\)|\b(?:https?|file):\/\/[^\s<>)\]]+|(?<![\w/.~@+-])((?:~|\.{1,2})?\/?(?:[\p{L}\p{N}_.@+-]+\/)*[\p{L}\p{N}_.@+-]+\.html?(?::\d+(?::\d+)?)?)(?![\w/])/giu
+  /(`+)([^`\n]+?)\1|(!?)\[([^\]\n]*)\]\(<?([^)\s>]+)>?\)|\b((?:https?|file):\/\/[^\s<>)\]]+)|(?<![\w/.~@+-])((?:~|\.{1,2})?\/?(?:[\p{L}\p{N}_.@+-]+\/)*[\p{L}\p{N}_.@+-]+\.html?(?::\d+(?::\d+)?)?)(?![\w/])/giu
 
 const FENCE = /^\s{0,3}(`{3,}|~{3,})/
 
@@ -79,11 +81,16 @@ const refOf = (href) => {
   }
 }
 
-// 裸路径被中文紧邻时的起点候选：先试「非 ASCII → ASCII」的转折处（"见index.html" 里的"见"是正文），
-// 都不成立再试整体（"中文文件.html" 这种文件名本身带中文的情况）。
+// 裸路径被中文紧邻时的起点候选。
+// token 以 ASCII 开头（"23-张截图.html"）→ 整段就是路径，中文在文件名里，不切。
+// token 以中文开头（"见index.html"）→ 先试中文之后的转折处，再兜底整段
+// （"中文文件.html" 这种文件名本身以中文开头的情况）。
 const starts = (bare) => {
+  if (/^[\w/.-]/.test(bare)) return [0]
   const out = []
-  for (let i = 1; i < bare.length; i++) if (bare.charCodeAt(i - 1) > 0x7f && bare.charCodeAt(i) <= 0x7f) out.push(i)
+  for (let i = 1; i < bare.length; i++) {
+    if (bare.charCodeAt(i - 1) > 0x7f && /[\w/.-]/.test(bare[i])) out.push(i)
+  }
   out.push(0)
   return out
 }
@@ -104,7 +111,7 @@ const linkify = (text, link, mark = '') => {
         fence = f
         return line
       }
-      return line.replace(TOKEN, (m, _ticks, code, bang, label, target, bare) => {
+      return line.replace(TOKEN, (m, _ticks, code, bang, label, target, url, bare) => {
         if (code !== undefined) {
           const h = link(code, 'code')
           return h ? `[${m}${mark}](${h})` : m
@@ -112,6 +119,10 @@ const linkify = (text, link, mark = '') => {
         if (target !== undefined && !bang) {
           const h = link(target, 'link')
           return h ? `[${label}${mark}](${h})` : m
+        }
+        if (url !== undefined) {
+          const h = link(url, 'url')
+          return h ? `[${url}${mark}](${h})` : m
         }
         if (bare !== undefined) {
           for (const i of starts(bare)) {
@@ -139,21 +150,36 @@ export function register(on) {
     const home = (await $.env.get('HOME')) ?? ''
     const base = cwdOf.get(e.requestId) || cwd
 
-    // 收集 href：回调返回 href 而非 null，linkify 才会在第一个成立的候选起点停下
+    // 收集候选：回调返回 href 而非 null，linkify 才会在第一个成立的候选起点停下
     // （"见index.html" 若返回 null，会继续试整体的"见index.html"，多算一个不存在的文件）。
     // linkify 的返回值丢弃——正文由引擎与 mdview 绘制，这里只取路径。
-    const hrefs = []
+    const found = []
+    const names = new Set() // 按文件名去重：一条消息里 "file:///…/a.html" 与 "a.html" 是同一个文件
     linkify(text, (raw) => {
       const ref = resolveRef(raw, base, home)
       if (!ref) return null
       const h = hrefOf({ abs: ref.abs, frag: '' }) // 去掉锚点：同一文件的 #a 与 #b 算一个
-      if (hrefs.includes(h)) return h
-      if (hrefs.length >= MAX_LINKS) return null
-      hrefs.push(h)
+      const name = baseName(ref.abs)
+      if (names.has(name)) return h // 已收录：让 loop 停下但不再加
+      if (found.length >= MAX_LINKS) return null
+      names.add(name)
+      found.push({ abs: ref.abs, href: h })
       return h
     })
-    if (hrefs.length === 0) return next(e)
-    const abs = hrefs.map((h) => refOf(h).abs)
+    if (found.length === 0) return next(e)
+
+    // 只保留真实存在的文件。known 里的不再 stat：每个文件每会话只查一次，
+    // 流式输出的反复重绘因此不产生额外 IO。文件写完之前不显示，写完后自然出现。
+    const live = []
+    for (const f of found) {
+      if (known.has(f.abs) || (await $.fs.stat(f.abs).catch(() => null))?.kind === 'file') {
+        known.add(f.abs)
+        live.push(f)
+      }
+    }
+    if (live.length === 0) return next(e)
+    const abs = live.map((f) => f.abs)
+    const hrefs = live.map((f) => f.href)
     // 先拿下一层（引擎 + mdview）的结果，再在其下追加一行
     const rest = await next(e)
     const { Box, Markdown } = $.ui.resolve(e)
