@@ -65,8 +65,11 @@ PYEOF
 plugin_cmds=$(find "$SKILLS_DIR" -mindepth 1 -maxdepth 1 -type d -printf '%f\n' 2>/dev/null | sort || true)
 
 # ---------- 2. 按 labels.txt 的分节与行序生成两行 ----------
-# labels.txt 用 "# --- mods ---" / "# --- plugin ---" 标记分节，
-# 节内行序即状态栏里的顺序。未出现在映射表里的命令追加到该行末尾。
+# labels.txt 用 "# --- mods ---" / "# --- ownmods ---" / "# --- plugin ---" 标记分节，
+# 节内行序即状态栏里的顺序。
+#   mods    外部 mod 的命令   -> 第 2 行前半
+#   ownmods 本插件 mod 的命令 -> 第 2 行后半，与前半之间用 " | " 分隔
+#   plugin  本插件技能        -> 第 3 行
 
 build_line() {
     local detected="$1" section="$2"
@@ -74,8 +77,9 @@ build_line() {
     # 先按 labels.txt 顺序输出本节的条目（仅当该命令确实被检测到）
     while IFS=$'\t' read -r c label; do
         case "$c" in
-            "# --- mods ---")   cur=mods;   continue ;;
-            "# --- plugin ---") cur=plugin; continue ;;
+            "# --- mods ---")    cur=mods;    continue ;;
+            "# --- ownmods ---") cur=ownmods; continue ;;
+            "# --- plugin ---")  cur=plugin;  continue ;;
             \#*) continue ;;
         esac
         [[ -z "$c" || "$cur" != "$section" ]] && continue
@@ -87,6 +91,8 @@ build_line() {
 }
 
 line2=$(build_line "$mod_cmds" mods)
+ownmods_line=$(build_line "$mod_cmds" ownmods)
+[[ -n "$ownmods_line" ]] && line2="${line2:+$line2 | }$ownmods_line"
 line3=$(build_line "$plugin_cmds" plugin)
 
 # ---------- 3. 写回 statusline.zsh（哨兵注释之间替换） ----------

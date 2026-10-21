@@ -5,9 +5,10 @@
 #
 # 本文件同时决定【显示文本】和【显示顺序】：行序即状态栏里的顺序。
 # 分节标记决定命令归到状态栏哪一行：
-#   # --- mods ---    外部 mod 的命令 -> statusline 第 2 行
+#   # --- mods ---    外部 mod 的命令 -> statusline 第 2 行前半
+#   # --- ownmods --- 本插件 mod 的命令 -> statusline 第 2 行后半，与前半用 " | " 分隔
 #   # --- plugin ---  本插件技能     -> statusline 第 3 行
-# 未出现在本文件的命令会被脚本追加到对应行末尾（兜底显示 /命令名）。
+# 本文件即白名单：未出现在这里的命令不显示。
 #
 # 注意：源码里的 description 是写给模型读的英文长句，不适合放状态栏，
 #       显示文本需人工润色成简短中文。
@@ -17,6 +18,8 @@ files	/files [目录|文件]:项目文件浏览器
 md	/md <路径>:md 阅读器
 mission	/mission [who|code]:代理关系图
 radar	/radar:子代理监控
+
+# --- ownmods ---
 prompts	/prompts [关键词]:提示词库
 
 # --- plugin ---
