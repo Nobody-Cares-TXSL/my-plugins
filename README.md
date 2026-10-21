@@ -12,8 +12,10 @@
     ├── .claude-plugin/plugin.json    # 插件清单
     ├── .codex-plugin/plugin.json     # Codex 插件清单
     ├── hooks/                          # Claude Code Mod
-    │   ├── hooks.json                 #   Mod 入口声明
+    │   ├── hooks.json                 #   Mod 入口声明（只指向 register.js）
+    │   ├── register.js                #   启动入口：import 各 mod 并调用
     │   ├── prompts.js                 #   Prompt Library 面板
+    │   ├── html-link.js               #   会话里的 .html 路径可点，点击开浏览器
     │   └── README.md                  #   mod 说明
     └── skills/                         # 目录型 skills
         ├── explain/SKILL.md            #   代码解释（Claude Code CLI / Codex）
