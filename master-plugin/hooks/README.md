@@ -61,7 +61,8 @@ master-plugin 的 mod 目录。
 - **不识别**：代码围栏内的链接；`https://` 后没有主机名的
 - **去重**：同一消息里相同 URL 只留一条，最多 20 个；超长 URL 显示为 60 字符截断
 - **工具结果**：`output` 是任意结构，递归取出字符串后再扫描；只读前 100k 字符
-- **只是追加**：`await next(e)` 保留引擎与其它 mod 的绘制，再追加一行 `⎿  example.com/path ↗`
+- **表格与正文**：回复、用户消息、命令输出里的裸 URL 改写成 `[url](url)` 再交给引擎画，可见文字不变，表格单元格里也能点；已是 markdown 链接的、行内代码、代码围栏都不动
+- **只是追加**：`await next(e)` 保留引擎与其它 mod 的绘制，再追加一行 `⎿  example.com/path ↗`（工具结果只追加，不改写：`output` 要过工具的输出 schema）
 - **打开**：Linux `xdg-open`，失败回退 `open`；Windows `cmd /c start`。直接传参数数组，不经 shell，每次尝试 5 秒超时
 - **点击时**：URL 里的 `(` `)` 显示时编码为 `%28` `%29`（避免截断 markdown 语法），打开前还原
 - **与 html-link 共存**：本地 `.html` 路径归 html-link，网络 URL 归本模块，互不重叠

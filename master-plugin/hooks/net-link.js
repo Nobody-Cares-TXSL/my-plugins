@@ -9,12 +9,13 @@ const MAX_SCAN = 100_000 // 工具输出可能是几十 MB，只看前 100k 字�
 // 结尾的 ASCII 标点由 trimUrl 去掉
 const URL_RE = /https?:\/\/[^\s<>"'`　-〿一-鿿＀-￯]+/gi
 const FENCE = /^\s{0,3}(`{3,}|~{3,})/
-const TAIL = /[.,;:!?…。，、；：！？"'」』】]+$/u
+const TAIL = /[.,;:!?…。，、；：！？"'」』】*]+$/u
 
 // ---- 以下为文本解析的纯函数：无副作用，不碰 $ ----
 
 // 去掉粘在 URL 末尾的标点。右括号只在不成对时去掉：
 // wikipedia 的 "Foo_(bar)" 结尾的 ")" 属于 URL，正文的 "（见 https://x）" 不属于。
+// "*" 是 markdown 粗体：**https://x** 里 URL 后面跟的是 "**"。
 const trimUrl = (raw) => {
   let url = raw.replace(TAIL, '')
   while (url.endsWith(')')) {
@@ -65,6 +66,36 @@ const labelOf = (url) => {
 
 const hostOf = (url) => url.replace(/^https?:\/\//i, '').split(/[/?#]/)[0]
 
+// 把裸 URL 改写成 markdown 链接，可见文字不变，表格单元格里也能点。
+// 已有的 [x](url) 目标、行内代码、代码围栏都不动。
+const linkifyBare = (text) => {
+  let fence = null
+  return text
+    .split('\n')
+    .map((line) => {
+      const f = FENCE.exec(line)?.[1]
+      if (fence) {
+        if (f && f[0] === fence[0] && f.length >= fence.length) fence = null
+        return line
+      }
+      if (f) {
+        fence = f
+        return line
+      }
+      return line.replace(URL_RE, (match, offset, whole) => {
+        const url = trimUrl(match)
+        if (!/^https?:\/\/[^/?#\s]+/i.test(url)) return match
+        // 已是 markdown 链接的目标或尖括号自动链接：前面是 "](" 或 "<"
+        const before = whole.slice(Math.max(0, offset - 2), offset)
+        if (before.endsWith('](') || before.endsWith('<')) return match
+        // 行内代码：前面反引号数为奇数说明在代码里
+        if (((whole.slice(0, offset).match(/`/g) || []).length % 2) === 1) return match
+        return '[' + url + '](' + hrefOf(url) + ')' + match.slice(url.length)
+      })
+    })
+    .join('\n')
+}
+
 // 工具输出是任意结构：递归取出其中的字符串再扫描
 const textOf = (value) => {
   if (typeof value === 'string') return value
@@ -76,34 +107,37 @@ const textOf = (value) => {
 // ---- hook 注册 ----
 
 export function register(on) {
+  // 正文里的裸 URL 改写成 markdown 链接再交给引擎画：表格单元格里也能点。
   on('ui.render', { component: 'AssistantMessage' }, async ($, e, next) => {
     if (e.surface !== 'terminal' || !e.viewport?.isFullscreen) return next(e)
-    return appendLinks($, e, next, e.props.text)
+    return appendLinks($, e, next, e.props.text, true)
   })
 
   on('ui.render', { component: 'UserMessage' }, async ($, e, next) => {
     if (e.surface !== 'terminal' || !e.viewport?.isFullscreen) return next(e)
-    return appendLinks($, e, next, e.props.text)
+    return appendLinks($, e, next, e.props.text, true)
   })
 
   on('ui.render', { component: 'CommandOutput' }, async ($, e, next) => {
     if (e.surface !== 'terminal' || !e.viewport?.isFullscreen) return next(e)
-    return appendLinks($, e, next, e.props.text)
+    return appendLinks($, e, next, e.props.text, true)
   })
 
+  // ToolResult 的 output 是任意结构，改写要过工具的输出 schema，这里只追加不改写。
   on('ui.render', { component: 'ToolResult' }, async ($, e, next) => {
     if (e.surface !== 'terminal' || !e.viewport?.isFullscreen) return next(e)
-    return appendLinks($, e, next, textOf(e.props.output))
+    return appendLinks($, e, next, textOf(e.props.output), false)
   })
 }
 
 // 先拿下一层（引擎与其它 mod）的绘制，再在其下追加一行链接。
-async function appendLinks($, e, next, text) {
+async function appendLinks($, e, next, text, rewrite) {
   if (!text || !/https?:\/\//i.test(text)) return next(e)
   const urls = collect(text)
   if (urls.length === 0) return next(e)
 
-  const rest = await next(e)
+  // 只改 props 的副本，引擎与其它 mod 的绘制照旧；存储的消息不受影响。
+  const rest = await next(rewrite ? { ...e, props: { ...e.props, text: linkifyBare(text) } } : e)
   const { Box, Markdown } = $.ui.resolve(e)
   const hrefs = urls.map(hrefOf)
   return Box({
