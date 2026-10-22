@@ -16,7 +16,6 @@
     │   ├── register.js                #   启动入口：import 各 mod 并调用
     │   ├── prompts.js                 #   Prompt Library 面板
     │   ├── html-link.js               #   会话里的 .html 路径可点，点击开浏览器
-    │   ├── net-link.js                #   会话里的 http(s) 链接可点，点击开浏览器
     │   └── README.md                  #   mod 说明
     └── skills/                         # 目录型 skills
         ├── explain/SKILL.md            #   代码解释（Claude Code CLI / Codex）
@@ -51,7 +50,6 @@
 | 组件 | 类型 | 说明 |
 |------|------|------|
 | `prompts` | Claude Code mod | `/prompts [关键词]` 浏览文件夹、搜索提示词、预览 frontmatter，并将全文填入输入框，手动发送 |
-| `net-link` | Claude Code mod | 会话记录里的 `http(s)` 链接追加为可点行，单击用系统浏览器打开；覆盖回复、用户消息、命令输出、工具结果 |
 | `explain` | skill | 解释选中的代码，包含库函数简要说明，兼容 Claude Code CLI 和 Codex |
 | `push` | skill | 按约定式提交规范创建提交并推送，兼容 Claude Code CLI 和 Codex |
 | `deep-read` | skill | 智能阅读助手，压缩文本的同时辅助理解 |
