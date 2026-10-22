@@ -12,6 +12,7 @@ master-plugin 的 mod 目录。
 | `register.js` | 启动入口：import 各 mod 并依次调用它们的 `register` |
 | `prompts.js` | `prompts` 命令与 Prompt Library 面板 |
 | `html-link.js` | 会话记录里 `.html` 路径的可点链接与浏览器打开；路径解析等纯函数也在本文件内 |
+| `net-link.js` | 会话记录里 `http(s)` 链接的可点行与浏览器打开 |
 
 加新 mod：在 `register.js` 加一行 import 和一次调用，`hooks.json` 不用改。
 
@@ -50,6 +51,20 @@ master-plugin 的 mod 目录。
 顺序若反转，失效窗口是**同一条消息里同时含 `.md` 和 `.html`**——此时 mdview 会替换整棵树且不调 `next`，本模块的 hook 根本不执行，html 链接不出现（只含 html 的消息不受影响，因为 mdview 的门禁不命中、会放行）。
 
 验证：发一条同时含 `a.md` 与 `b.html` 的回复，看到 `⎿ b.html ↗` 即为外层。
+
+## net-link：点击网络链接用浏览器打开
+
+会话记录里出现 `http://` / `https://` 链接时，在该消息下方追加一行可点链接，单击交给系统默认浏览器打开。覆盖助手回复、用户消息、命令输出、工具结果四处。
+
+- **识别**：`http(s)://` 后跟主机名的链接；遇到空白、引号、尖括号或中日韩字符即止（中文正文常紧贴链接书写）
+- **去尾标点**：结尾的 `。，、；：！？` 与 ASCII 标点去掉；右括号只在不成对时去掉，`.../Foo_(bar)` 的括号保留
+- **不识别**：代码围栏内的链接；`https://` 后没有主机名的
+- **去重**：同一消息里相同 URL 只留一条，最多 20 个；超长 URL 显示为 60 字符截断
+- **工具结果**：`output` 是任意结构，递归取出字符串后再扫描；只读前 100k 字符
+- **只是追加**：`await next(e)` 保留引擎与其它 mod 的绘制，再追加一行 `⎿  example.com/path ↗`
+- **打开**：Linux `xdg-open`，失败回退 `open`；Windows `cmd /c start`。直接传参数数组，不经 shell，每次尝试 5 秒超时
+- **点击时**：URL 里的 `(` `)` 显示时编码为 `%28` `%29`（避免截断 markdown 语法），打开前还原
+- **与 html-link 共存**：本地 `.html` 路径归 html-link，网络 URL 归本模块，互不重叠
 
 ## 验证
 

@@ -2,9 +2,11 @@
 // 加新 mod 时在下面加一行 import 和一次调用。
 
 import { register as registerHtmlLink } from './html-link.js'
+import { register as registerNetLink } from './net-link.js'
 import { register as registerPrompts } from './prompts.js'
 
 export function register(on, options) {
   registerPrompts(on, options)
   registerHtmlLink(on)
+  registerNetLink(on)
 }
