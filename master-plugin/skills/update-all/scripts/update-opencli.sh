@@ -19,7 +19,12 @@ trap cleanup EXIT
 
 # 更新 CLI
 echo "--- Updating opencli CLI ---"
-npm update -g @jackwener/opencli 2>&1
+# 单包 npm update 同样重算依赖树，先查再装
+if npm outdated -g @jackwener/opencli 2>/dev/null | grep -q .; then
+  npm update -g @jackwener/opencli 2>&1
+else
+  echo "  ✅ 已是最新"
+fi
 echo ""
 
 # 克隆最新 skills

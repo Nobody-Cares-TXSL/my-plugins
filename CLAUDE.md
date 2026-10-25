@@ -46,7 +46,7 @@ claude plugin update master-plugin
 | Claude Code 插件 | `~/.claude/settings.json` → `enabledPlugins` | `claude plugin update` |
 | 插件安装信息 | `~/.claude/plugins/installed_plugins.json` | — |
 | opencli skills（生态） | `~/.agents/skills/`（通用 agent skills 目录，opencli 生态占其中一部分）+ `~/.claude/skills/`（符号链接） | `git clone --depth 1` + 同步 |
-| agent-reach skill | `~/.claude/skills/agent-reach/` | pipx upgrade + skill install |
+| agent-reach skill | `~/.agents/skills/agent-reach/`（权威）；`~/.claude/skills/agent-reach` 为符号链接 | pipx upgrade + skill 同步 |
 | notebooklm | pipx venv + `~/.claude/skills/notebooklm/` | pipx upgrade + skill install |
 | opencode CLI | `~/.opencode/bin/opencode` | `opencode upgrade --method curl` |
 | npm 全局包 | `~/.nvm/versions/node/*/lib/node_modules` | `npm update -g`（npm/pnpm/corepack 锁定大版本） |

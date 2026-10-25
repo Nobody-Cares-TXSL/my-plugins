@@ -20,6 +20,10 @@ is_standalone() {
   local f="$1"
   [ -f "$f" ] || return 1
   [ -L "$f" ] && return 1
+  # 排除下载/备份残留（如 magpie.new），它们不是已安装的软件
+  case "$(basename "$f")" in
+    *.new|*.bak|*.old|*.tmp|*.download) return 1 ;;
+  esac
   dpkg -S "$f" >/dev/null 2>&1 && return 1
   file -b "$f" 2>/dev/null | grep -q '^ELF' || return 1
   return 0
@@ -76,6 +80,17 @@ download_url() {
   echo "到:   $DL_DIR/$fname"
   timeout 600 curl -L --progress-bar -o "$DL_DIR/$fname" "$url"
   echo "完成: $DL_DIR/$fname"
+  echo ""
+  echo "下一步（脚本不安装，请手动执行）："
+  case "$fname" in
+    *.tar.gz|*.tgz|*.tar.xz|*.zip)
+      echo "  解包后按包内结构替换目标二进制，例如："
+      echo "    tar -xzf ~/下载/$fname -C /usr/local/bin <二进制名>   # 属主 root 时需 sudo"
+      ;;
+    *)
+      echo "    chmod +x ~/下载/$fname && sudo mv ~/下载/$fname <目标路径>"
+      ;;
+  esac
 }
 
 case "${1:-}" in

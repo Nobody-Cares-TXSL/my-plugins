@@ -29,7 +29,14 @@ for tool in $LOCKED_TOOLS; do
 done
 
 echo "--- Updating npm global packages ---"
-npm update -g 2>&1
+# npm update -g 会重算整棵依赖树（实测空跑 ~5 分钟），先查 outdated（~14 秒）再决定是否真装
+outdated=$(npm outdated -g 2>/dev/null || true)
+if [ -z "$outdated" ]; then
+  echo "  ✅ 全部已是最新，跳过 npm update -g"
+else
+  echo "$outdated" | sed 's/^/  /'
+  npm update -g 2>&1
+fi
 echo ""
 
 echo "--- 检查开发工具链大版本 ---"

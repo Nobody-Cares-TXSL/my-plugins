@@ -10,7 +10,7 @@ LABEL="${1:-snapshot}"
 SETTINGS="$HOME/.claude/settings.json"
 PLUGINS="$HOME/.claude/plugins/installed_plugins.json"
 AGENT_SKILLS="$HOME/.agents/skills"
-REACH_SKILL="$HOME/.claude/skills/agent-reach"
+REACH_SKILL="$HOME/.agents/skills/agent-reach"
 
 # 落盘：输出同时写入文件，供更新后对比（防上下文丢失）
 SNAP_FILE="${TMPDIR:-$HOME/.cache/tmp}/update-all-snapshot-$LABEL.txt"
@@ -58,8 +58,10 @@ echo "--- opencli CLI ---"
 if command -v opencli &>/dev/null; then
   opencli_ver=$(opencli --version 2>&1 | head -1)
   echo "  $opencli_ver"
-  opencli_stats=$(opencli list 2>&1 | grep -E '[0-9]+ built-in commands' | head -1 | sed 's/^ *//')
-  echo "  $opencli_stats"
+  # 2.x 输出 JSON，1.x 输出人类可读统计行；两种都取，取不到不致命
+  opencli_sites=$(opencli --help 2>&1 | grep -oE 'Site adapters \([0-9]+\)' | head -1 || true)
+  opencli_cmds=$(opencli list --limit 1 -f json 2>&1 | grep -oE '"total":[0-9]+' | head -1 | cut -d: -f2 || true)
+  echo "  ${opencli_sites:-站点数未知}${opencli_cmds:+, ${opencli_cmds} commands}"
 else
   echo "  not installed"
 fi
@@ -70,9 +72,10 @@ echo "--- Agent Skills (~/.agents/skills) ---"
 if [ -d "$AGENT_SKILLS" ]; then
   # opencli 生态：opencli-* 前缀 + smart-search（frontmatter 声明"基于 opencli 命令"）
   echo "  [opencli 生态]"
-  ls -1 "$AGENT_SKILLS" 2>/dev/null | grep -E '^(opencli-|smart-search$)' | sed 's/^/    /'
+  # grep 无匹配在 set -euo pipefail 下会终止整个快照，必须兜底
+  ls -1 "$AGENT_SKILLS" 2>/dev/null | grep -E '^(opencli-|smart-search$)' | sed 's/^/    /' || true
   echo "  [独立]"
-  ls -1 "$AGENT_SKILLS" 2>/dev/null | grep -vE '^(opencli-|smart-search$)' | sed 's/^/    /'
+  ls -1 "$AGENT_SKILLS" 2>/dev/null | grep -vE '^(opencli-|smart-search$)' | sed 's/^/    /' || true
 else
   echo "  not installed"
 fi
@@ -81,11 +84,19 @@ echo ""
 # agent-reach CLI + skill
 echo "--- agent-reach ---"
 if command -v agent-reach &>/dev/null; then
-  echo "  CLI: $(agent-reach --version 2>&1 | head -1)"
+  # 1.6+ 移除了 --version，版本改从 doctor 的 JSON 取
+  reach_ver=$(agent-reach doctor 2>/dev/null | grep -oE '"version": *"[^"]+"' | head -1 | cut -d'"' -f4 || true)
+  echo "  CLI: ${reach_ver:-未知}"
 fi
 if [ -f "$REACH_SKILL/SKILL.md" ]; then
   skill_date=$(stat -c '%Y' "$REACH_SKILL/SKILL.md" 2>/dev/null)
   echo "  skill: $(date -d "@$skill_date" '+%Y-%m-%d %H:%M')"
+  # 双份真目录会导致同名 skill 内容分裂，链接形态才是预期
+  if [ -L "$HOME/.claude/skills/agent-reach" ]; then
+    echo "  link:  ~/.claude/skills/agent-reach ✓"
+  elif [ -d "$HOME/.claude/skills/agent-reach" ]; then
+    echo "  link:  ⚠️ ~/.claude/skills/agent-reach 是独立副本（应为符号链接）"
+  fi
 else
   echo "  skill: not installed"
 fi

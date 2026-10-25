@@ -37,7 +37,7 @@ allowed-tools:
 
 ### 任务追踪
 
-开始前，用 TaskCreate 创建以下 12 个任务，按顺序逐步 TaskUpdate 为 in_progress → completed：
+开始前，若当前环境注册了 `TaskCreate`/`TaskUpdate`，就创建以下 12 个任务并逐步更新为 in_progress → completed；未注册则顺序执行，每步结束向用户简报进度。两种方式结果等价，不要因缺工具跳过步骤：
 
 1. **版本快照（更新前）** — snapshot.sh before，保存 UPDATE_BEFORE
 2. **Claude Code 插件** — update-plugins.sh
@@ -101,6 +101,8 @@ bash {skillDir}/scripts/update-opencode-commands.sh
 bash {skillDir}/scripts/update-npm.sh
 ```
 
+> 脚本先跑 `npm outdated -g`（~14s），无更新则跳过 `npm update -g`。后者会重算整棵依赖树，实测空跑需 **5 分钟**——这是全流程最大的单点耗时，别改回去。
+
 #### pipx 包
 
 ```bash
@@ -161,14 +163,15 @@ bash {skillDir}/scripts/snapshot.sh after
 
 #### `~/Project/obsidian/04 调研/工具栈/README.md`
 
-- **信息获取章节**: last30days 通道状态、opencli 版本号 + 站点数/命令数 + skill 列表、agent-reach 版本号 + 通道数 + Tier 状态
+- **信息获取章节**: last30days 通道状态、opencli 版本号 + 站点数/命令数 + skill 列表、agent-reach 版本号 + 通道数 + 级别（level: default/optional/experimental）分布
 - **全局技能表**: opencli 和 agent-reach 的 skill 描述
 - **插件表**: 各插件的技能列表
 
 版本检测命令：
-- opencli 站点/命令数: `opencli list 2>&1 | grep "built-in commands"`（输出格式如 `1050 built-in commands across 162 sites, 13 external CLIs`；勿用 `tail -1`，node warning 会挤掉统计行）
-- agent-reach 通道数: `agent-reach doctor 2>&1 | grep "状态："`
-- 注意：本文档无独立"最后更新"字段，版本信息内嵌在标题（如 `#### opencli v1.8.7`）与表格中
+- opencli 站点数: `opencli --help 2>&1 | grep -oE 'Site adapters \([0-9]+\)'`（v2.0+ 起；1.x 无此行，退回 `opencli list | grep "built-in commands"`）
+- opencli 命令数: `opencli list --limit 1 -f json 2>&1 | grep -oE '"total":[0-9]+'`（取 `total` 字段；勿数数组长度——`list` 默认只返回 25 条）
+- agent-reach 通道数: `agent-reach doctor 2>&1 | grep -oE '"status": *"[^"]+"' | sort | uniq -c`（默认输出 JSON；`--text` 为人类可读表，无"状态："字段）
+- 注意：本文档无独立"最后更新"字段，版本信息内嵌在标题（如 `#### opencli v2.0.2`）与表格中
 
 #### 文档原则
 
@@ -183,7 +186,13 @@ bash {skillDir}/scripts/snapshot.sh after
 这些软件只能手动换二进制（如 fd、lazygit、yazi、starship、rtk、anki、px0）。流程：
 
 1. **发现**：`bash {skillDir}/scripts/check-hard-updates.sh`（只读，列出候选 + 当前版本 + 属主 + 更新方式）
-2. **查最新版**：对每个候选查上游最新版（GitHub releases）
+2. **查最新版**：对每个候选查上游最新版（GitHub releases）。**并行查**——串行 8 个请求约 9 秒，并行约 3 秒：
+   ```bash
+   for r in <owner/repo>...; do
+     env gh release view --repo "$r" --json tagName -q .tagName 2>/dev/null | sed "s|^|$r |" &
+   done; wait
+   ```
+   > 用 `gh` 而非 `curl api.github.com`：匿名 API 会 403 限流（实测 `API rate limit exceeded`）。
 3. **让用户选**：用 AskUserQuestion 列出可更新项，用户勾选
 4. **下载**：`bash {skillDir}/scripts/check-hard-updates.sh --download <url>`（下载到 `~/下载`，**不安装**）
 5. **用户手动安装**：脚本给出安装命令，由用户执行（多数需 sudo）
@@ -212,7 +221,7 @@ bash {skillDir}/scripts/snapshot.sh after
 | 已启用插件列表 | `~/.claude/settings.json` → `enabledPlugins` | — |
 | 插件安装信息 | `~/.claude/plugins/installed_plugins.json` | — |
 | opencli skills（生态） | `~/.agents/skills/`（通用 agent skills 目录，opencli 生态占其中一部分）+ `~/.claude/skills/` (symlinks) | `jackwener/opencli` |
-| agent-reach skill | `~/.claude/skills/agent-reach/` | `Panniantong/Agent-Reach` → `agent_reach/skill/` |
+| agent-reach skill | `~/.agents/skills/agent-reach/`（权威）；`~/.claude/skills/agent-reach` 为符号链接 | `Panniantong/Agent-Reach` → `agent_reach/skill/` |
 | opencli CLI | 全局 npm | `@jackwener/opencli` |
 | opencode CLI | `~/.opencode/bin/opencode` | `opencode upgrade --method curl` |
 | agent-reach CLI | pipx venv | `agent-reach` PyPI |
