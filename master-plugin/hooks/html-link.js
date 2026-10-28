@@ -204,7 +204,45 @@ export function register(on) {
   })
 }
 
-// 交给系统默认浏览器打开；不经 shell 拼接，直接传参数数组。
+// 交给默认网页浏览器打开；不经 shell 拼接，直接传参数数组。
+
+// desktop 文件内容 → 可 exec 的 argv：取首条 Exec=，去掉 %U/%f 字段码与 env/变量赋值前缀。
+// 不处理 Exec 里的引号（发行版桌面文件极少用），解析不出来就放弃这条路、回退 xdg-open。
+function desktopExec(text) {
+  const line = /^Exec=(.+)$/m.exec(text)?.[1]
+  if (!line) return null
+  const argv = line
+    .trim()
+    .split(/\s+/)
+    .filter((t) => !/^%[a-zA-Z]$/.test(t) && !/^[A-Za-z_][A-Za-z0-9_]*=/.test(t))
+  if (argv[0] === 'env') argv.shift()
+  return argv.length > 0 ? argv : null
+}
+
+// 系统「默认网页浏览器」的 argv。查的是 http(s) 归属（default-web-browser），
+// 不是 text/html 的文件关联——后者会被桌面的「打开方式→设为默认」改掉
+// （2026-10-28 就曾被 ZCode 抢走，点击 .html 进了编辑器），前者没人会去动。
+async function webBrowserArgv($) {
+  const home = (await $.env.get('HOME')) ?? ''
+  const run = await $.process.run(['xdg-settings', 'get', 'default-web-browser'], { timeoutMs: 3_000 }).catch(() => null)
+  if (!run || run.exitCode !== 0) return null
+  const desktop = String(run.stdout ?? '').trim()
+  if (!/^[A-Za-z0-9._+@-]+\.desktop$/.test(desktop)) return null
+  const dirs = [
+    ...(home ? [`${home}/.local/share/applications`] : []),
+    '/usr/share/applications',
+    '/usr/local/share/applications',
+    '/var/lib/flatpak/exports/share/applications',
+  ]
+  for (const dir of dirs) {
+    const text = await $.fs.read(`${dir}/${desktop}`).catch(() => null)
+    if (typeof text !== 'string') continue
+    const argv = desktopExec(text)
+    if (argv) return argv
+  }
+  return null
+}
+
 async function openHtml($, href) {
   const ref = refOf(href)
   if (!ref) return
@@ -213,15 +251,18 @@ async function openHtml($, href) {
     $.ui.toast(`html-link: 文件不存在 ${ref.abs}`)
     return
   }
+  const browser = (await $.env.get('OS')) === 'Windows_NT' ? null : await webBrowserArgv($)
   const tries =
     (await $.env.get('OS')) === 'Windows_NT'
       ? [['cmd', '/c', 'start', '', ref.abs]]
       : [
+          // 首选浏览器直开（file:// URL，不经 mime 默认）；查不到浏览器才回退 xdg-open/open
+          ...(browser ? [[...browser, hrefOf({ abs: ref.abs, frag: '' })]] : []),
           ['xdg-open', ref.abs],
           ['open', ref.abs],
         ]
-  // 只两个候选，超时压到 5s：最坏 10s 仍在 ui.press 链的可接受范围内。
-  // Linux 上 /usr/bin/open 常是 xdg-open 的符号链接，第二次尝试只是兜底瞬时故障。
+  // 首选命中即返回；回退候选各 5 秒超时。Linux 上 /usr/bin/open 常是 xdg-open 的
+  // 符号链接，最后两次尝试只是兜底瞬时故障，正常路径不会走到。
   for (const argv of tries) {
     const run = await $.process.run(argv, { timeoutMs: 5_000 }).catch(() => null)
     if (run && run.exitCode === 0) {

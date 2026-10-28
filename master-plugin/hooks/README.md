@@ -37,7 +37,7 @@ master-plugin 的 mod 目录。
 - **去重**：按文件名，同一条消息里 `file:///…/a.html` 与 `a.html` 只保留一条
 - **只显示存在的**：`$.fs.stat` 确认 `kind === 'file'` 才显示。已确认的路径记在模块级 Set 里，**每个文件每会话只查一次**，流式输出的反复重绘不产生额外 IO。文件写完前不显示，写完后自然出现
 - **中文**：以 ASCII 开头的 token（`23-张截图.html`）整段当路径，不切分；以中文开头的（`见index.html`）先试中文之后的部分，再兜底整段。`见中文文件.html` 无法区分「见」是正文还是文件名，属纯文本的固有限制，与 mdview 一致
-- **打开**：Linux `xdg-open`，失败回退 `open`；Windows `cmd /c start`。直接传参数数组，不经 shell，每次尝试 5 秒超时
+- **打开**：Linux 先查 `xdg-settings get default-web-browser`（http(s) 归属，**不是**易被桌面「设为默认」改走的 `text/html` 文件关联），解析其 desktop 文件 `Exec=` 后用浏览器直开 `file://` URL；查不到才回退 `xdg-open`/`open`。Windows `cmd /c start`。直接传参数数组，不经 shell，每次尝试 5 秒超时
 - **反馈**：成功/失败都用 toast 告知
 - **只是追加**：`await next(e)` 保留引擎与其它 mod 的绘制，再追加一行 `⎿  a.html ↗`——**不替换正文**；最多 20 个，同一文件的 `#a` 与 `#b` 只算一个
 - **点击时**：再 stat 一次，文件已被删则 toast 提示
