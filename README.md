@@ -50,7 +50,7 @@
 | 组件 | 类型 | 说明 |
 |------|------|------|
 | `prompts` | Claude Code mod | `/prompts [关键词]` 浏览文件夹、搜索提示词、预览 frontmatter，并将全文填入输入框，手动发送 |
-| `explain` | skill | 解释选中的代码，包含库函数简要说明，兼容 Claude Code CLI 和 Codex |
+| `explain` | skill | 解释选中的代码，产出 HTML 图解页面：全文引用代码、功能总览、流程/语法/引用三段说明，并核实库函数与相关文件出处；无渲染 CLI 时退化为结构化文本 |
 | `push` | skill | 按约定式提交规范创建提交并推送，兼容 Claude Code CLI 和 Codex |
 | `deep-read` | skill | 智能阅读助手，压缩文本的同时辅助理解 |
 | `update-all` | skill | 一键更新所有 Claude Code 插件、npm/pipx 包、opencli、agent-reach、notebooklm、opencode 并同步 Obsidian 文档；开发工具链（npm/pnpm/corepack）锁定大版本；传组件名可只更新单个组件 |
