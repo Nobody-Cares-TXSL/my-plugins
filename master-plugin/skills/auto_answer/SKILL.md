@@ -143,6 +143,25 @@ document.querySelectorAll('button, span').forEach(el => {
 });
 ```
 
+### iframe 内的考试页（主观题 / 手写题）
+
+部分考试（如雨课堂主观题）整页渲染在同源 iframe 里（`src` 形如 `/v/quiz/quiz_result/<id>/`），主文档只有导航栏。此时：
+
+- **按钮点击**（继续答题 / 作答 / 去交卷 / 交卷 / 确认）必须在 `iframe.contentDocument` 内查找：
+  ```javascript
+  const d = document.querySelector('iframe').contentDocument;
+  const b = [...d.querySelectorAll('button,span,div,a')]
+    .find(e => e.textContent.trim() === '作答');
+  b.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+  ```
+- **题目内容**：主观题题目通常是 PPT 图片，从 `iframe.contentWindow.quizData.Slides[].Shapes[].URL` 取图片地址下载后识别。
+- **附件上传**：`opencli upload` 不穿透 iframe，用专用子命令：
+  ```bash
+  scripts/aa.sh upload-attachment /path/to/answer.jpg
+  ```
+  脚本自动 base64 分块注入（绕过 argv 长度上限），优先选 iframe 内的 `input[type=file]`，触发 `change` 后页面显示文件名即成功。
+- **标签页丢失**：会话标签可能被其他操作切成 `about:blank`，关键步骤前用 `scripts/aa.sh ensure` 自动重绑（`read-questions`/`answer-*`/`verify`/`upload-attachment` 已内置该守卫）。
+
 ## 注意事项
 
 - 本技能提供答题框架，实际答案需要 Claude 根据题目内容分析得出

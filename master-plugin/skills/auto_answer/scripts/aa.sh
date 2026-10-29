@@ -9,6 +9,8 @@
 #   aa.sh answer-choice <答案.json>       # { choice:{...}, judge:{...} }
 #   aa.sh answer-fill   <答案.json>       # { fill:{...} }
 #   aa.sh verify
+#   aa.sh upload-attachment <文件>        # 注入附件到 file input（支持同源 iframe）
+#   aa.sh ensure                          # 标签页丢失（about:blank）时自动重绑
 #   aa.sh eval <js文件>
 #   aa.sh raw <js字符串>
 #
@@ -29,8 +31,8 @@ case "$cmd" in
     ;;
 
   bind)
-    opencli browser "$SESSION" unbind 2>/dev/null || true
-    opencli browser "$SESSION" bind
+    opencli browser --session "$SESSION" unbind 2>/dev/null || true
+    opencli browser --session "$SESSION" bind
     ;;
 
   hide-dialogs)
@@ -38,23 +40,40 @@ case "$cmd" in
     ;;
 
   read-questions)
+    aa_ensure_bound "$SESSION"
     aa_eval "$SESSION" "$(build_js "$SCRIPT_DIR/js/read_questions.js")"
     ;;
 
   answer-choice)
     ans="${1:-}"
     [ -f "$ans" ] || { echo "用法: aa.sh answer-choice <答案.json>" >&2; exit 2; }
+    aa_ensure_bound "$SESSION"
     aa_eval "$SESSION" "$(build_js "$SCRIPT_DIR/js/answer_choice.js" "$ans")"
     ;;
 
   answer-fill)
     ans="${1:-}"
     [ -f "$ans" ] || { echo "用法: aa.sh answer-fill <答案.json>" >&2; exit 2; }
+    aa_ensure_bound "$SESSION"
     aa_eval "$SESSION" "$(build_js "$SCRIPT_DIR/js/answer_fill.js" "$ans")"
     ;;
 
   verify)
+    aa_ensure_bound "$SESSION"
     aa_eval "$SESSION" "$(build_js "$SCRIPT_DIR/js/verify.js")"
+    ;;
+
+  # upload-attachment <文件>：注入附件到页面 file input（同源 iframe 也支持）
+  upload-attachment)
+    f="${1:-}"
+    [ -f "$f" ] || { echo "用法: aa.sh upload-attachment <文件>" >&2; exit 2; }
+    aa_ensure_bound "$SESSION"
+    aa_upload_file "$SESSION" "$f"
+    ;;
+
+  ensure)
+    aa_ensure_bound "$SESSION"
+    aa_eval "$SESSION" "JSON.stringify({url: location.href, title: document.title})"
     ;;
 
   # eval <js文件>：直接执行一个 JS 文件（临时脚本用）

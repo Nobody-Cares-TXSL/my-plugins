@@ -8,11 +8,11 @@
   const log = [];
 
   // 按可见标号匹配。雨课堂的 input.value 与可见标号错位，不能信 value
+  // 匹配逻辑见 _match.js（与回归测试共用）；仅当选项完全无标号时才退回 value
   const matchByLetter = (l, letter) => {
-    const t = AA.visText(l);
-    if (t === letter) return true;
-    if (new RegExp('^' + letter + '[\\s.、,，:：)）]').test(t)) return true;
-    const inp = l.querySelector('input');           // 无可见标号时退回 value
+    const r = AA.matchByLetter(AA.visText(l), letter);
+    if (r !== null) return r;
+    const inp = l.querySelector('input');
     return !!inp && inp.value === letter;
   };
   // 也可直接给选项文本，按包含匹配
