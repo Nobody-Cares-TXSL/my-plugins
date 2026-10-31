@@ -185,17 +185,20 @@ bash {skillDir}/scripts/snapshot.sh after
 
 这些软件只能手动换二进制（如 fd、lazygit、yazi、starship、rtk、anki、px0）。流程：
 
-1. **发现**：`bash {skillDir}/scripts/check-hard-updates.sh`（只读，列出候选 + 当前版本 + 属主 + 更新方式）
-2. **查最新版**：对每个候选查上游最新版（GitHub releases）。**并行查**——串行 8 个请求约 9 秒，并行约 3 秒：
+1. **发现**：`bash {skillDir}/scripts/check-hard-updates.sh`（只读，列出候选 + 当前版本 + 属主 + 更新方式 + **上游/查新版**）
+2. **查最新版**：按「上游/查新版」列执行，**并行查**——串行 8 个请求约 9 秒，并行约 3 秒：
+   - `owner/repo` → `gh release view --repo <owner/repo> --json tagName -q .tagName`
+   - `self: <cmd>` → 直接跑该命令（如 `uv self update --dry-run`、`magpie update check`、`rustup check`），**不要**用 `gh release` 查
    ```bash
    for r in <owner/repo>...; do
      env gh release view --repo "$r" --json tagName -q .tagName 2>/dev/null | sed "s|^|$r |" &
    done; wait
    ```
+   > 表里显示 `-` 的，先 `gh search repos <name>` 定位仓库，**不要猜仓库名**（猜错会得到空结果，白跑一轮）。
    > 用 `gh` 而非 `curl api.github.com`：匿名 API 会 403 限流（实测 `API rate limit exceeded`）。
 3. **让用户选**：用 AskUserQuestion 列出可更新项，用户勾选
-4. **下载**：`bash {skillDir}/scripts/check-hard-updates.sh --download <url>`（下载到 `~/下载`，**不安装**）
-5. **用户手动安装**：脚本给出安装命令，由用户执行（多数需 sudo）
+4. **下载**：`bash {skillDir}/scripts/check-hard-updates.sh --download <url> <目标路径>`（下载到 `~/下载`，**不安装**；目标路径用于按属主生成准确的安装命令）
+5. **用户手动安装**：脚本给出安装命令，由用户执行（目录不可写时自动带 sudo）
 
 > 更新方式有三类：`自更新`（uv/magpie/rustup 等，走自带命令）、`cargo 更新`（`~/.cargo/bin/` 下的，用 `cargo install <名> --locked`）、`手动下载`（下 release 包后手动装）。后两类不用手动换二进制以外的方式。
 
