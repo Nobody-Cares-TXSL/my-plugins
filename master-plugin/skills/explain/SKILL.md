@@ -56,7 +56,7 @@ description: 解释用户选中的代码，产出 HTML 图解页面：全文引�
 
 ## 渲染页面
 
-1. 先判断 CLI 可用性：在 answer-me-with-html 插件的 cache 目录下找最新版本的 `scripts/am.mjs`。可用则走页面；不可用（无 Node 20+、无该插件、或 Codex 环境）则按上面的结构输出结构化 Markdown 文本，并在开头说明「未生成页面，原因是 X」。
+1. 先判断 CLI 可用性：在 answer-me-with-html 插件的 cache 目录下找最新版本的 `skills/answer-me-with-html/scripts/am.mjs`。可用则走页面；不可用（无 Node 20+、无该插件、或 Codex 环境）则按上面的结构输出结构化 Markdown 文本，并在开头说明「未生成页面，原因是 X」。
 2. **草稿先落文件再渲染**：把完整草稿写入 `$TMPDIR` 下的 `.md`，再 `am render <文件>`。长草稿不要用 heredoc 传——会被截断并报 `fenced block is not closed`。
 3. 渲染报错时按 `L<行号>` 修草稿文件后重跑；已有页面用 `--replace <旧页面路径>`。
 4. 页面语言与用户提问语言一致；中文用 `lang: zh`。

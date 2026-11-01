@@ -11,25 +11,25 @@ compatibility: "Requires Node.js with docx and katex packages. Optional: Google 
 
 基于 **Markdown 数据源 + ESM 脚本** 分离架构：`paper.md` → `parsePaper()` → `elements[]` → `buildChildren()` → docx.js 对象 → `paper.docx`。
 
-内容改 Markdown，格式改脚本常量，互不干扰。详细架构见 [[references/architecture.md]]。
+内容改 Markdown，格式改脚本常量，互不干扰。详细架构见 [references/architecture.md](references/architecture.md)。
 
-首次使用先读 [[references/quickstart.md]] 了解项目初始化与工作流。
+首次使用先读 [references/quickstart.md](references/quickstart.md) 了解项目初始化与工作流。
 
 ## 使用方式
 
-**先读** [[references/boilerplate.mjs.txt]] — 获取完整代码骨架和所有工厂函数，再按需查阅以下专题：
+**先读** [references/boilerplate.mjs.txt](references/boilerplate.mjs.txt) — 获取完整代码骨架和所有工厂函数，再按需查阅以下专题：
 
 | 任务涉及 | 文件 | 获取什么 |
 |----------|------|----------|
-| 字体显示异常 | [[references/fonts.md]] | 三字段字体对象 `{ ascii, eastAsia, hAnsi }` 原理 |
-| 页面/段落细节 | [[references/page-paragraph.md]] | 单位转换、行距原理、奇偶页眉、页码控制 |
-| 表格 | [[references/tables.md]] | 三线表边框哲学、`columnWidths` 与 tblGrid 的关系、行列控制要点 |
-| 图片 | [[references/images.md]] | PNG 头原理、等比缩放、type 必填 |
-| 公式 | [[references/equations.md]] | 渲染管线（KaTeX+Chrome+ImageMagick）、bmatrix 修复、行内公式 |
-| 封面/目录 | [[references/cover-toc.md]] | 封面对齐策略、手动目录构建原理、SimpleField 陷阱 |
-| 整体架构 | [[references/architecture.md]] | Markdown→docx 解析架构、元素映射、内容与格式分离 |
-| 遇到 bug | [[references/pitfalls.md]] | 32 条症状→原因→修复速查 |
-| 项目初始化 | [[references/quickstart.md]] | 初始化、目录结构、运行命令、修改流程 |
+| 字体显示异常 | [references/fonts.md](references/fonts.md) | 三字段字体对象 `{ ascii, eastAsia, hAnsi }` 原理 |
+| 页面/段落细节 | [references/page-paragraph.md](references/page-paragraph.md) | 单位转换、行距原理、奇偶页眉、页码控制 |
+| 表格 | [references/tables.md](references/tables.md) | 三线表边框哲学、`columnWidths` 与 tblGrid 的关系、行列控制要点 |
+| 图片 | [references/images.md](references/images.md) | PNG 头原理、等比缩放、type 必填 |
+| 公式 | [references/equations.md](references/equations.md) | 渲染管线（KaTeX+Chrome+ImageMagick）、bmatrix 修复、行内公式 |
+| 封面/目录 | [references/cover-toc.md](references/cover-toc.md) | 封面对齐策略、手动目录构建原理、SimpleField 陷阱 |
+| 整体架构 | [references/architecture.md](references/architecture.md) | Markdown→docx 解析架构、元素映射、内容与格式分离 |
+| 遇到 bug | [references/pitfalls.md](references/pitfalls.md) | 32 条症状→原因→修复速查 |
+| 项目初始化 | [references/quickstart.md](references/quickstart.md) | 初始化、目录结构、运行命令、修改流程 |
 
 ## 检查清单
 

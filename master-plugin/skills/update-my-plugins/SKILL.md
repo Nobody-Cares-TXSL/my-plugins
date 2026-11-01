@@ -33,7 +33,7 @@ allowed-tools:
 
 ### 1. 定位技能文件
 
-在 `/home/duan/plugins/` 仓库中查找对应的技能文件：
+在本插件仓库的 `master-plugin/skills/` 下查找对应的技能文件：
 
 - 查 `master-plugin/skills/<技能名>/SKILL.md`
 - 找不到则报错并终止

@@ -63,8 +63,8 @@ explain	/explain:解释选中代码
 ## 执行
 
 ```bash
-bash scripts/sync-statusline.sh --dry-run   # 先看结果，不写入
-bash scripts/sync-statusline.sh             # 写入
+bash ${CLAUDE_SKILL_DIR}/scripts/sync-statusline.sh --dry-run   # 先看结果，不写入
+bash ${CLAUDE_SKILL_DIR}/scripts/sync-statusline.sh             # 写入
 ```
 
 脚本幂等：重复运行结果一致。写入前检查四个哨兵注释都在，缺任何一个就报错退出（不会静默改错位置）。

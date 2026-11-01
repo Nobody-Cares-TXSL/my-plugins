@@ -74,31 +74,31 @@ allowed-tools:
 
 ```bash
 export http_proxy=http://127.0.0.1:7890 https_proxy=http://127.0.0.1:7890
-bash {skillDir}/scripts/snapshot.sh before
+bash ${CLAUDE_SKILL_DIR}/scripts/snapshot.sh before
 ```
 
 #### Claude Code 插件
 
 ```bash
-bash {skillDir}/scripts/update-plugins.sh
+bash ${CLAUDE_SKILL_DIR}/scripts/update-plugins.sh
 ```
 
 #### opencode CLI
 
 ```bash
-bash {skillDir}/scripts/update-opencode.sh
+bash ${CLAUDE_SKILL_DIR}/scripts/update-opencode.sh
 ```
 
 #### opencode commands 同步
 
 ```bash
-bash {skillDir}/scripts/update-opencode-commands.sh
+bash ${CLAUDE_SKILL_DIR}/scripts/update-opencode-commands.sh
 ```
 
 #### npm 全局包
 
 ```bash
-bash {skillDir}/scripts/update-npm.sh
+bash ${CLAUDE_SKILL_DIR}/scripts/update-npm.sh
 ```
 
 > 脚本先跑 `npm outdated -g`（~14s），无更新则跳过 `npm update -g`。后者会重算整棵依赖树，实测空跑需 **5 分钟**——这是全流程最大的单点耗时，别改回去。
@@ -106,13 +106,13 @@ bash {skillDir}/scripts/update-npm.sh
 #### pipx 包
 
 ```bash
-bash {skillDir}/scripts/update-pipx.sh
+bash ${CLAUDE_SKILL_DIR}/scripts/update-pipx.sh
 ```
 
 #### opencli CLI + Skills
 
 ```bash
-bash {skillDir}/scripts/update-opencli.sh
+bash ${CLAUDE_SKILL_DIR}/scripts/update-opencli.sh
 ```
 
 > 脚本内部已包含 nvm 加载逻辑，无需手动 source。npm 全量已在前一步跑过，此处的 `npm update -g @jackwener/opencli` 通常为 no-op。
@@ -120,7 +120,7 @@ bash {skillDir}/scripts/update-opencli.sh
 #### agent-reach
 
 ```bash
-bash {skillDir}/scripts/update-agent-reach.sh
+bash ${CLAUDE_SKILL_DIR}/scripts/update-agent-reach.sh
 ```
 
 > pipx 全量已跑过，此处的 `pipx upgrade agent-reach` 通常为 no-op。
@@ -128,7 +128,7 @@ bash {skillDir}/scripts/update-agent-reach.sh
 #### notebooklm
 
 ```bash
-bash {skillDir}/scripts/update-notebooklm.sh
+bash ${CLAUDE_SKILL_DIR}/scripts/update-notebooklm.sh
 ```
 
 > 同上，`pipx upgrade notebooklm-py` 通常为 no-op。
@@ -136,13 +136,13 @@ bash {skillDir}/scripts/update-notebooklm.sh
 #### 散装二进制检查
 
 ```bash
-bash {skillDir}/scripts/check-hard-updates.sh
+bash ${CLAUDE_SKILL_DIR}/scripts/check-hard-updates.sh
 ```
 
 列出候选后，对每个查上游最新版，用 AskUserQuestion 让用户勾选要更新的，再逐个下载：
 
 ```bash
-bash {skillDir}/scripts/check-hard-updates.sh --download <url>
+bash ${CLAUDE_SKILL_DIR}/scripts/check-hard-updates.sh --download <url>
 ```
 
 > **不自动安装**——下载到 `~/下载` 后由用户手动执行安装命令（多数需 sudo）。
@@ -150,7 +150,7 @@ bash {skillDir}/scripts/check-hard-updates.sh --download <url>
 #### 版本快照（更新后）
 
 ```bash
-bash {skillDir}/scripts/snapshot.sh after
+bash ${CLAUDE_SKILL_DIR}/scripts/snapshot.sh after
 ```
 
 **对比两次快照**，输出变更摘要（使用 `⬆️` 标记升级、`✅` 标记无变化、`⚠️` 标记跨大版本升级）。检测 [opencli 生态] 组是否有新/移除的 skill（独立 skill 由各自来源管理，不计入 opencli 变更）。
@@ -185,7 +185,7 @@ bash {skillDir}/scripts/snapshot.sh after
 
 这些软件只能手动换二进制（如 fd、lazygit、yazi、starship、rtk、anki、px0）。流程：
 
-1. **发现**：`bash {skillDir}/scripts/check-hard-updates.sh`（只读，列出候选 + 当前版本 + 属主 + 更新方式 + **上游/查新版**）
+1. **发现**：`bash ${CLAUDE_SKILL_DIR}/scripts/check-hard-updates.sh`（只读，列出候选 + 当前版本 + 属主 + 更新方式 + **上游/查新版**）
 2. **查最新版**：按「上游/查新版」列执行，**并行查**——串行 8 个请求约 9 秒，并行约 3 秒：
    - `owner/repo` → `gh release view --repo <owner/repo> --json tagName -q .tagName`
    - `self: <cmd>` → 直接跑该命令（如 `uv self update --dry-run`、`magpie update check`、`rustup check`），**不要**用 `gh release` 查
@@ -197,7 +197,7 @@ bash {skillDir}/scripts/snapshot.sh after
    > 表里显示 `-` 的，先 `gh search repos <name>` 定位仓库，**不要猜仓库名**（猜错会得到空结果，白跑一轮）。
    > 用 `gh` 而非 `curl api.github.com`：匿名 API 会 403 限流（实测 `API rate limit exceeded`）。
 3. **让用户选**：用 AskUserQuestion 列出可更新项，用户勾选
-4. **下载**：`bash {skillDir}/scripts/check-hard-updates.sh --download <url> <目标路径>`（下载到 `~/下载`，**不安装**；目标路径用于按属主生成准确的安装命令）
+4. **下载**：`bash ${CLAUDE_SKILL_DIR}/scripts/check-hard-updates.sh --download <url> <目标路径>`（下载到 `~/下载`，**不安装**；目标路径用于按属主生成准确的安装命令）
 5. **用户手动安装**：脚本给出安装命令，由用户执行（目录不可写时自动带 sudo）
 
 > 更新方式有三类：`自更新`（uv/magpie/rustup 等，走自带命令）、`cargo 更新`（`~/.cargo/bin/` 下的，用 `cargo install <名> --locked`）、`手动下载`（下 release 包后手动装）。后两类不用手动换二进制以外的方式。
@@ -210,7 +210,7 @@ bash {skillDir}/scripts/snapshot.sh after
 
 ## 单组件流程（传组件名）
 
-只执行参数解析表中该组件对应的脚本，命令写法同上（`bash {skillDir}/scripts/<脚本>`）。
+只执行参数解析表中该组件对应的脚本，命令写法同上（`bash ${CLAUDE_SKILL_DIR}/scripts/<脚本>`）。
 
 - **不做**版本快照（`snapshot.sh before/after`）、**不做**变更摘要对比
 - **不做** Obsidian 文档更新

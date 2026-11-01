@@ -10,12 +10,12 @@ allowed-tools:
 # auto_answer — 自动答题
 
 通过 opencli browser 操作浏览器，读取在线考试/练习题目并自动作答。
-所有浏览器交互都走 `scripts/aa.sh`，**不要手写内联 JS**（长内联 JS 的引号/换行转义极易出错）。
+所有浏览器交互都走 `${CLAUDE_SKILL_DIR}/scripts/aa.sh`，**不要手写内联 JS**（长内联 JS 的引号/换行转义极易出错）。
 
 ## 前置检查
 
 ```bash
-scripts/aa.sh doctor
+${CLAUDE_SKILL_DIR}/scripts/aa.sh doctor
 ```
 
 确保 `[OK] Extension: connected`。未连接则 `opencli daemon restart` 后重试；仍失败则提示用户安装扩展。
@@ -30,7 +30,7 @@ scripts/aa.sh doctor
 
 ```bash
 export AA_SESSION=auto
-scripts/aa.sh bind
+${CLAUDE_SKILL_DIR}/scripts/aa.sh bind
 ```
 
 确认绑定的 URL 包含 `exam`/`quiz`/`test` 关键词。若绑到空白页，提示用户在浏览器中打开答题页后重试。
@@ -40,7 +40,7 @@ scripts/aa.sh bind
 ### Step 2: 处理弹窗
 
 ```bash
-scripts/aa.sh hide-dialogs
+${CLAUDE_SKILL_DIR}/scripts/aa.sh hide-dialogs
 ```
 
 若页面有"开始"按钮且考试尚未开始计时，提示用户手动点击"开始"（部分平台需要手机验证码等二次确认）。
@@ -48,7 +48,7 @@ scripts/aa.sh hide-dialogs
 ### Step 3: 读取全部题目
 
 ```bash
-scripts/aa.sh read-questions
+${CLAUDE_SKILL_DIR}/scripts/aa.sh read-questions
 ```
 
 输出 JSON：`{ root, total, items[] }`，每题含 `q`（题号）、`type`（`single`/`multi`/`judge`/`fill`）、`title`、`options[]`、`fillCount`、`ctx`。
@@ -79,8 +79,8 @@ scripts/aa.sh read-questions
 ### Step 5: 作答
 
 ```bash
-scripts/aa.sh answer-choice choice.json
-scripts/aa.sh answer-fill   fill.json
+${CLAUDE_SKILL_DIR}/scripts/aa.sh answer-choice choice.json
+${CLAUDE_SKILL_DIR}/scripts/aa.sh answer-fill   fill.json
 ```
 
 **两者必须分开执行**，不要合并——填空题有独立的串行写入逻辑（见下）。
@@ -98,7 +98,7 @@ scripts/aa.sh answer-fill   fill.json
 ### Step 6: 验证
 
 ```bash
-scripts/aa.sh verify
+${CLAUDE_SKILL_DIR}/scripts/aa.sh verify
 ```
 
 输出 `{ total, unanswered[], partialFills[], report[] }`。
@@ -125,8 +125,8 @@ scripts/aa.sh verify
 临时脚本（如主观题、特殊页面）用：
 
 ```bash
-scripts/aa.sh eval /path/to/tmp.js    # 执行 JS 文件
-scripts/aa.sh raw 'location.href'      # 直接透传 JS 字符串（短表达式）
+${CLAUDE_SKILL_DIR}/scripts/aa.sh eval /path/to/tmp.js    # 执行 JS 文件
+${CLAUDE_SKILL_DIR}/scripts/aa.sh raw 'location.href'      # 直接透传 JS 字符串（短表达式）
 ```
 
 `eval` 会先拼上 `js/_common.js`（提供 `window.__aa`：`pickRoot`/`items`/`qType`/`visText`/`clickFull`/`queryAll`），可复用这些工具。
@@ -157,10 +157,10 @@ document.querySelectorAll('button, span').forEach(el => {
 - **题目内容**：主观题题目通常是 PPT 图片，从 `iframe.contentWindow.quizData.Slides[].Shapes[].URL` 取图片地址下载后识别。
 - **附件上传**：`opencli upload` 不穿透 iframe，用专用子命令：
   ```bash
-  scripts/aa.sh upload-attachment /path/to/answer.jpg
+  ${CLAUDE_SKILL_DIR}/scripts/aa.sh upload-attachment /path/to/answer.jpg
   ```
   脚本自动 base64 分块注入（绕过 argv 长度上限），优先选 iframe 内的 `input[type=file]`，触发 `change` 后页面显示文件名即成功。
-- **标签页丢失**：会话标签可能被其他操作切成 `about:blank`，关键步骤前用 `scripts/aa.sh ensure` 自动重绑（`read-questions`/`answer-*`/`verify`/`upload-attachment` 已内置该守卫）。
+- **标签页丢失**：会话标签可能被其他操作切成 `about:blank`，关键步骤前用 `${CLAUDE_SKILL_DIR}/scripts/aa.sh ensure` 自动重绑（`read-questions`/`answer-*`/`verify`/`upload-attachment` 已内置该守卫）。
 
 ## 注意事项
 
