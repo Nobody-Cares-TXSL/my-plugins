@@ -1,7 +1,7 @@
 {
   "name": "master-plugin",
-  "version": "2.0.14",
-  "description": "个人工具集：代码解释、规范提交、智能阅读、Word文档生成、一键更新工具链",
+  "version": "2.0.15",
+  "description": "个人工具集：Prompt 库、代码解释、规范提交、智能阅读、Word 文档生成、自动答题、会话复盘、状态栏同步、一键更新工具链与插件发布",
   "author": {
     "name": "Nobody-Cares-TXSL"
   },

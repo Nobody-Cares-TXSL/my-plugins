@@ -8,8 +8,10 @@
 .
 ├── .claude-plugin/marketplace.json   # Claude Code 市场清单（owner + 插件列表）
 ├── .agents/plugins/marketplace.json  # Codex 市场清单（repo 市场）
+├── LICENSE                            # MIT 许可证
 └── master-plugin/                     # 唯一的子插件
     ├── .claude-plugin/plugin.json    # 插件清单
+    ├── .claude-plugin/icon.png       # 插件图标（1024x1024）
     ├── .codex-plugin/plugin.json     # Codex 插件清单
     ├── hooks/                          # Claude Code Mod
     │   ├── hooks.json                 #   Mod 入口声明（只指向 register.js）
