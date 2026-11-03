@@ -1,4 +1,6 @@
 const PANE = 'prompt-library'
+// 给 agent/人看的说明文件，不是提示词，按文件名（不区分大小写）跳过
+const META_FILES = ['claude.md', 'agents.md', 'readme.md']
 
 // 这些值只用于当前面板；重新打开命令时从磁盘加载，不保存用户数据。
 let prompts = []
@@ -38,6 +40,7 @@ async function readDirectory($, relativeDirectory, errors) {
       folders.push(file)
       await readDirectory($, file, errors)
     } else if (entry.kind === 'file' && /\.md$/i.test(entry.name)) {
+      if (META_FILES.includes(entry.name.toLowerCase())) continue
       try {
         const text = await $.fs.read(directory.replace(/\/$/, '') + '/' + file)
         if (!text.trim()) continue
