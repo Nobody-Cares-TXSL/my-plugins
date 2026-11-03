@@ -104,15 +104,7 @@ rg -n '<关键词>' ~/.claude/projects/*/${CLAUDE_SESSION_ID}.jsonl
 
 ## 输出格式
 
-```
-| # | 摩擦（现象） | 归类 | 维度 | 证据 | 建议 |
-|---|-------------|------|------|------|------|
-| 1 | 差集误删独立 skill 的符号链接 | 插件 | 破坏性操作 | update-opencli.sh:59 差集未限定域 | 限定 opencli 生态 |
-| 2 | 两清单版本号不一致 | 插件 | 跨清单一致性 | plugin.json 与 codex-plugin.json 不同步 | 同步 bump |
-| 3 | 手动改了 README 而非触发 sync-statusline | 插件 | 触发精度 | 全程无插件调用记录 | 补触发词 |
-| 4 | 工具调用格式残缺，重试 3 次 | 模型 | — | 转录中 3 条 tool_use 报错 | 无需改插件 |
-| 5 | 镜像源 HTTP 403 | 环境 | — | 报错原文 | 换镜像源 |
-```
+`摩擦 → 归类 → 维度 → 证据 → 建议`，插件问题排最前，同类按后果严重度排序。完整示例与取舍原则见 [references/examples.md](references/examples.md)。
 
 ## 注意
 
