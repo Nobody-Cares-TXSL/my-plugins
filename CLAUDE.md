@@ -10,6 +10,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 目录树统一维护在 [README.md 的仓库结构章节](README.md#仓库结构)。
 
+本仓库的可编辑工作副本是 `/home/duan/plugins`。`~/.claude/plugins/marketplaces/my-plugins` 是 `claude plugin` 克隆的只读市场副本，内容和这里几乎一致——不要在副本里改，改动不进提交且会被下次拉取覆盖。
+
 ## 常用命令
 
 ```bash
