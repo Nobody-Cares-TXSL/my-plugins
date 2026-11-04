@@ -12,6 +12,7 @@ master-plugin 的 mod 目录。
 | `register.js` | 启动入口：import 各 mod 并依次调用它们的 `register` |
 | `prompts.js` | `prompts` 命令与 Prompt Library 面板 |
 | `html-link.js` | 会话记录里 `.html` 路径的可点链接与浏览器打开；路径解析等纯函数也在本文件内 |
+| `prompt-optimize.js` | `prompt.submit`：把口语化提示词改写成任务导向描述，改写文本直接进入会话 |
 
 加新 mod：在 `register.js` 加一行 import 和一次调用，`hooks.json` 不用改。
 
@@ -27,6 +28,16 @@ master-plugin 的 mod 目录。
 - **降级**：终端和 Desktop 之外（如 `claude -p`、VS Code 聊天面板）不绘制界面，改为返回提示词列表文本
 
 状态（提示词、当前文件夹、搜索词等）只存在模块级变量里，重载即重置；不保存用户数据。
+
+## prompt-optimize：改写提示词原文
+
+`prompt.submit` 时把口语化请求改写成任务导向描述，改写后的文本直接进入会话（会话记录和提示词历史都显示新文本）。
+
+- **跳过的输入**：斜杠命令（`e.command`）、隐藏提示词（`e.isMeta`）、非人手来源（`e.origin.kind` 不是 `composer`/`bridge`，即别的会话、定时任务、SDK、其他插件发的提示词）、超过 300 字符（视为别处复制的成品提示词）、少于 10 字符（确认词）
+- **模型**：`$.session.model()` 取当前会话模型；`effort: low`，`maxTokens: 400`，`timeoutMs: 8000`，并把 `next.signal` 传给 `$.model.complete`，中断时立刻停止调用
+- **失败放行**：模型调用异常（记 `$.ui.log`）、`isAnswered` 为 false、或回复含 `IMPROVE_SKIP`（原文已足够清晰）时，一律原样放行
+- **结果校验**：改写超过 400 字符，或丢掉了原文中的 `@文件` 提及，都保留原文并记日志
+- **成本**：每次命中都会额外消耗一次模型调用；`$` 调用的耗时不计入 hook 的 10 秒预算
 
 ## html-link：点击 html 路径用浏览器打开
 
