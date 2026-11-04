@@ -9,7 +9,15 @@ AGENTS_SKILLS="$HOME/.agents/skills"
 PLUGIN_SKILLS="$HOME/plugins/master-plugin/skills"
 PLUGIN_COMMANDS="$HOME/plugins/master-plugin/commands"
 SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "$0")")" && pwd)"
-DESC_MAP="$SCRIPT_DIR/../commands-desc.txt"
+# 描述映射必须写源仓库：脚本从插件缓存目录运行时，$SCRIPT_DIR 指向 cache 副本，
+# 写进去的内容会被下次 `claude plugin update` 整目录覆盖而丢失。
+SRC_DESC_MAP="$HOME/plugins/master-plugin/skills/update-all/commands-desc.txt"
+if [ -f "$SRC_DESC_MAP" ]; then
+  DESC_MAP="$SRC_DESC_MAP"
+else
+  DESC_MAP="$SCRIPT_DIR/../commands-desc.txt"
+  echo "  ⚠️  源仓库 commands-desc.txt 不存在，回退到 $DESC_MAP（内容可能随插件更新丢失）"
+fi
 
 if [ ! -f "$OCCONFIG" ]; then
   echo "  opencode config not found at $OCCONFIG, skipping"
@@ -25,9 +33,28 @@ extract_name() {
 }
 
 # 从 SKILL.md 提取 description frontmatter
+# 支持三种 YAML 写法：单行 `description: xxx`、折叠/字面标量 `description: >` 或 `|`（续行需缩进）
 extract_description() {
   local skill_file="$1"
-  awk '/^description:/{found=1; sub(/^description:[[:space:]]*/, ""); sub(/^[[:space:]]*\|[[:space:]]*/, ""); if(found) {gsub(/^[[:space:]]+|[[:space:]]+$/, ""); print; exit}} found{gsub(/^[[:space:]]+|[[:space:]]+$/, ""); print}' "$skill_file"
+  awk '
+    /^description:/ {
+      rest = $0
+      sub(/^description:[[:space:]]*/, "", rest)
+      if (rest ~ /^[|>][-+]?[[:space:]]*$/) { block = 1; next }   # 多行标量，读续行
+      gsub(/^[[:space:]]+|[[:space:]]+$/, "", rest)
+      print rest; exit
+    }
+    block {
+      if ($0 ~ /^[[:space:]]+/) {                                 # 缩进续行
+        line = $0
+        gsub(/^[[:space:]]+|[[:space:]]+$/, "", line)
+        if (line != "") desc = (desc == "" ? line : desc " " line)
+        next
+      }
+      print desc; desc = ""; exit                                 # 回到顶格即结束（清空避免 END 重复输出）
+    }
+    END { if (block && desc != "") print desc }
+  ' "$skill_file"
 }
 
 # 收集所有 skill name（去重），同时输出 name<TAB>skill_md_path
@@ -95,7 +122,11 @@ ${translate_input}"
     echo "$translation_result" | grep '|' | sed -E 's/^[[:space:]]*`//; s/`[[:space:]]*$//' >> "$DESC_MAP"
     # 统计成功追加的数量
     added=$(echo "$translation_result" | grep -c '|')
-    echo "  Added $added description(s) to commands-desc.txt"
+    echo "  Added $added description(s) to $DESC_MAP"
+    # 守卫：源仓库有改动时必须提醒提交，否则下次插件更新会覆盖
+    if [ "$DESC_MAP" = "$SRC_DESC_MAP" ] && ! git -C "$HOME/plugins" diff --quiet -- master-plugin/skills/update-all/commands-desc.txt 2>/dev/null; then
+      echo "  ⚠️  commands-desc.txt 已改动，请提交并推送 ~/plugins 后 bump 插件版本"
+    fi
   else
     echo "  Warning: translation failed, new commands will be skipped"
     for entry in "${new_entries[@]}"; do
@@ -175,7 +206,7 @@ if new_names:
 if removed_names:
     print(f'  Removed commands: {\" \".join(removed_names)}')
 if not new_names and not removed_names:
-    print('  No changes')
+    print('  No new/removed commands (descriptions still refreshed)')
 
 # 构建 commands
 # 只保留已存在的 OR commands-desc.txt 中有中文描述的 skill

@@ -31,3 +31,5 @@ setup-matt-pocock-skills|为工程类技能配置仓库：初始化 issue 跟踪
 tdd|测试驱动开发，用于先写测试构建功能或修复 bug、"红-绿-重构"流程或集成测试场景。
 vue-patterns|Vue 3 组合式 API 模式、组件架构、响应式最佳实践、Pinia 状态管理、Vue Router 导航与 Nuxt SSR 模式，适用于 Vue/Nuxt/Vite/Pinia 项目。
 distill-session|复盘当前会话中调用插件的摩擦，归类为插件/模型/环境问题，生成插件优化清单并逐条确认修复。
+sync-statusline|同步 ~/.claude/statusline.zsh 的斜杠命令速查行：安装或卸载 mod、增删本插件技能后，状态栏第 2、3 行的命令列表会过期，用本技能重新生成。触发词：同步状态栏、statusline 命令、状态栏命令过期。
+writing-for-agents|为 agent 编写文档。在创建或编辑 skill，或修改 AGENTS.md、CLAUDE.md 时使用。

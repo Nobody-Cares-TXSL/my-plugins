@@ -34,7 +34,7 @@ probe_version() {
   timeout 5 "$f" --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "?"
 }
 
-SELF_UPDATE_TOOLS=("uv" "uvx" "magpie" "rustup" "cargo" "gh")
+SELF_UPDATE_TOOLS=("uv" "uvx" "magpie" "rustup" "gh")
 
 # 已知散装工具的上游：owner/repo 走 gh release；self: <cmd> 走工具自带检查。
 # 未列出的显示 "-"，先用 gh search repos <name> 定位，不要猜仓库名。
@@ -50,7 +50,7 @@ declare -A UPSTREAM=(
   [uvx]="self: uv self update --dry-run"
   [magpie]="self: magpie update check"
   [rustup]="self: rustup check"
-  [cargo]="self: rustup check"
+  # cargo 不单列：它是 rustup 的符号链接，is_standalone 会直接排除，版本随 rustup toolchain 走
 )
 
 upstream_info() {

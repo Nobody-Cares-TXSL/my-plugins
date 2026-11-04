@@ -46,7 +46,37 @@ fi
 echo "--- opencode ---"
 if command -v opencode &>/dev/null; then
   echo "  CLI: $(opencode --version 2>&1 | head -1)"
-  opencode_skills=$(ls -d "$HOME/.config/opencode/skills"/*/SKILL.md 2>/dev/null | wc -l || true)
+  # opencode 从 opencode.jsonc 的 skills.paths 加载 skill，不读 ~/.config/opencode/skills（常为空）
+  OC_SKILL_PATHS=$(python3 -c '
+import json, re, sys, os
+p = os.path.expanduser("~/.config/opencode/opencode.jsonc")
+try:
+    raw = open(p).read()
+except OSError:
+    sys.exit(0)
+raw = "\n".join(l for l in raw.splitlines() if not l.strip().startswith("//"))
+s = raw.find("{")
+if s < 0: sys.exit(0)
+depth = 0
+for i in range(s, len(raw)):
+    if raw[i] == "{": depth += 1
+    elif raw[i] == "}":
+        depth -= 1
+        if depth == 0:
+            end = i + 1; break
+try:
+    data = json.loads(raw[s:end])
+except Exception:
+    sys.exit(0)
+for pth in data.get("skills", {}).get("paths", []):
+    print(os.path.expanduser(pth))
+' 2>/dev/null)
+  opencode_skills=0
+  while IFS= read -r p; do
+    [ -n "$p" ] && [ -d "$p" ] || continue
+    n=$(ls -d "$p"/*/SKILL.md 2>/dev/null | wc -l)
+    opencode_skills=$((opencode_skills + n))
+  done <<< "$OC_SKILL_PATHS"
   echo "  skills: $opencode_skills"
 else
   echo "  not installed"

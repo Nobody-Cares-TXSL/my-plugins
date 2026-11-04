@@ -101,7 +101,8 @@ bash ${CLAUDE_SKILL_DIR}/scripts/update-opencode-commands.sh
 bash ${CLAUDE_SKILL_DIR}/scripts/update-npm.sh
 ```
 
-> 脚本先跑 `npm outdated -g`（~14s），无更新则跳过 `npm update -g`。后者会重算整棵依赖树，实测空跑需 **5 分钟**——这是全流程最大的单点耗时，别改回去。
+> 脚本先跑 `npm outdated -g`（~14s），无更新则跳过 `npm update -g`。后者会重算整棵依赖树，实测**空跑 5 分钟、有更新时 11 分钟**（本次实测 `changed 1172 packages in 11m`）——这是全流程最大的单点耗时，别改回去。
+> **预期超过前台 600s 超时**，用 `run_in_background: true` 执行，或设 `timeout: 600000` 后等其转后台；转后台不等于失败。
 
 #### pipx 包
 
@@ -159,7 +160,7 @@ bash ${CLAUDE_SKILL_DIR}/scripts/snapshot.sh after
 
 ### 文档更新
 
-基于变更摘要，更新以下文档。**所有工具都更新文档**，无变更的至少更新日期。
+基于变更摘要，更新以下文档。**只改版本/状态字段**；无变更的工具不改动，在简报里说明「已实测核对，无需改动」即可——该文档无独立日期字段，不存在「至少更新日期」这回事。
 
 #### `~/Project/obsidian/04 调研/工具栈/README.md`
 
