@@ -2,8 +2,48 @@
 // .md 的点击显示交给 mdview，本模块只认 html，且只在自己的行里追加，不替换正文。
 
 const MAX_LINKS = 20
-const cwdOf = new Map() // requestId → 首次绘制时的 cwd：cd 之后旧消息里的相对路径不漂移
-const known = new Set() // 已确认存在的路径：每个文件每会话只 stat 一次，重绘不产生 IO
+const MAX_CWD_ENTRIES = 512
+const MAX_STAT_ENTRIES = 1024
+const FILE_CACHE_TTL_MS = 30_000
+const MISSING_CACHE_TTL_MS = 1_000
+
+// requestId → 首次绘制时的 cwd；有界 LRU，避免长会话无限累积。
+const cwdOf = new Map()
+// abs path → { kind, checkedAt }；正/负结果均短期缓存，减少流式重绘 IO。
+const statCache = new Map()
+
+function readLru(map, key) {
+  if (!map.has(key)) return undefined
+  const value = map.get(key)
+  map.delete(key)
+  map.set(key, value)
+  return value
+}
+
+function writeLru(map, key, value, limit) {
+  map.delete(key)
+  map.set(key, value)
+  if (map.size > limit) map.delete(map.keys().next().value)
+}
+
+function clearCaches() {
+  cwdOf.clear()
+  statCache.clear()
+}
+
+async function isHtmlFile($, abs) {
+  const now = Date.now()
+  const cached = readLru(statCache, abs)
+  if (cached) {
+    const ttl = cached.kind === 'file' ? FILE_CACHE_TTL_MS : MISSING_CACHE_TTL_MS
+    if (now - cached.checkedAt < ttl) return cached.kind === 'file'
+  }
+
+  const stat = await $.fs.stat(abs).catch(() => null)
+  const kind = stat?.kind === 'file' ? 'file' : 'missing'
+  writeLru(statCache, abs, { kind, checkedAt: Date.now() }, MAX_STAT_ENTRIES)
+  return kind === 'file'
+}
 
 // ---- 以下为路径解析与文本链接化的纯函数：无副作用，不碰 $ ----
 
@@ -19,6 +59,7 @@ const TOKEN =
 const FENCE = /^\s{0,3}(`{3,}|~{3,})/
 
 const baseName = (p) => p.slice(p.lastIndexOf('/') + 1)
+const escapeMarkdownLabel = (value) => value.replace(/\\/g, '\\\\').replace(/\]/g, '\\]')
 
 // 折叠绝对路径里的 . 与 ..
 const normalize = (p) => {
@@ -139,47 +180,70 @@ const linkify = (text, link, mark = '') => {
 // ---- hook 注册 ----
 
 export function register(on) {
+  // /clear、/resume、/branch 等会话切换触发 session.end；及时释放旧会话缓存。
+  on('session.end', async ($, e, next) => {
+    clearCaches()
+    return next(e)
+  })
+
   on('ui.render', { component: 'AssistantMessage' }, async ($, e, next) => {
     // 点击只在 fullscreen 终端里到达插件；其它情况保持引擎的绘制
     if (e.surface !== 'terminal' || !e.viewport?.isFullscreen) return next(e)
     const text = e.props.text
     if (!text || !MAYBE_HTML.test(text)) return next(e)
 
-    const cwd = await $.session.cwd()
-    if (!cwdOf.has(e.requestId)) cwdOf.set(e.requestId, cwd)
+    let base
+    if (e.requestId != null) {
+      const cachedCwd = readLru(cwdOf, e.requestId)
+      if (cachedCwd !== undefined) {
+        base = cachedCwd
+      } else {
+        base = await $.session.cwd()
+        writeLru(cwdOf, e.requestId, base, MAX_CWD_ENTRIES)
+      }
+    } else {
+      base = await $.session.cwd()
+    }
     const home = (await $.env.get('HOME')) ?? ''
-    const base = cwdOf.get(e.requestId) || cwd
 
     // 收集候选：回调返回 href 而非 null，linkify 才会在第一个成立的候选起点停下
     // （"见index.html" 若返回 null，会继续试整体的"见index.html"，多算一个不存在的文件）。
-    // linkify 的返回值丢弃——正文由引擎与 mdview 绘制，这里只取路径。
+    // 按绝对路径去重：同一文件的不同锚点只保留一个，不同目录下的同名文件必须分别保留。
     const found = []
-    const names = new Set() // 按文件名去重：一条消息里 "file:///…/a.html" 与 "a.html" 是同一个文件
+    const paths = new Set()
     linkify(text, (raw) => {
       const ref = resolveRef(raw, base, home)
       if (!ref) return null
       const h = hrefOf({ abs: ref.abs, frag: '' }) // 去掉锚点：同一文件的 #a 与 #b 算一个
-      const name = baseName(ref.abs)
-      if (names.has(name)) return h // 已收录：让 loop 停下但不再加
+      if (paths.has(ref.abs)) return h
       if (found.length >= MAX_LINKS) return null
-      names.add(name)
+      paths.add(ref.abs)
       found.push({ abs: ref.abs, href: h })
       return h
     })
     if (found.length === 0) return next(e)
 
-    // 只保留真实存在的文件。known 里的不再 stat：每个文件每会话只查一次，
-    // 流式输出的反复重绘因此不产生额外 IO。文件写完之前不显示，写完后自然出现。
+    // 正向结果缓存 30 秒，负向结果缓存 1 秒；缓存有容量上限，点击时仍会重新 stat。
     const live = []
-    for (const f of found) {
-      if (known.has(f.abs) || (await $.fs.stat(f.abs).catch(() => null))?.kind === 'file') {
-        known.add(f.abs)
-        live.push(f)
-      }
+    for (const file of found) {
+      if (await isHtmlFile($, file.abs)) live.push(file)
     }
     if (live.length === 0) return next(e)
-    const abs = live.map((f) => f.abs)
-    const hrefs = live.map((f) => f.href)
+
+    // 默认只显示文件名；同名文件改为显示相对 cwd 的路径（cwd 之外显示绝对路径）。
+    const nameCounts = new Map()
+    for (const file of live) {
+      const name = baseName(file.abs)
+      nameCounts.set(name, (nameCounts.get(name) ?? 0) + 1)
+    }
+    const labels = live.map((file) => {
+      const name = baseName(file.abs)
+      if (nameCounts.get(name) === 1) return name
+      const prefix = base.endsWith('/') ? base : base + '/'
+      return file.abs.startsWith(prefix) ? file.abs.slice(prefix.length) : file.abs
+    })
+    const hrefs = live.map((file) => file.href)
+
     // 先拿下一层（引擎 + mdview）的结果，再在其下追加一行
     const rest = await next(e)
     const { Box, Markdown } = $.ui.resolve(e)
@@ -193,7 +257,7 @@ export function register(on) {
             Markdown({
               key: 'html-open',
               dimColor: true,
-              text: '⎿  ' + abs.map((p, i) => `[${baseName(p)} ↗](${hrefs[i]})`).join(' · '),
+              text: '⎿  ' + labels.map((label, i) => `[${escapeMarkdownLabel(label)} ↗](${hrefs[i]})`).join(' · '),
               pressableLinks: hrefs,
               onLinkPress: (link) => void openHtml($, link.href),
             }),
