@@ -92,11 +92,11 @@ function matchingPrompts() {
       : prompt.folder === folder)
 }
 
-async function fillPrompt($, prompt, mode) {
+async function fillText($, text, done, mode) {
   try {
-    const result = await $.prompt.fill({ text: prompt.text, mode })
+    const result = await $.prompt.fill({ text, mode })
     if (result.isFilled) {
-      notice = '已填入：' + prompt.name + '。面板保持打开，可继续选择提示词。'
+      notice = done + '。面板保持打开，可继续选择提示词。'
       $.ui.invalidate('ui.render')
     } else {
       $.ui.toast('当前无法填入输入框，请关闭其他对话框后重试。')
@@ -105,6 +105,9 @@ async function fillPrompt($, prompt, mode) {
     $.ui.toast('填入失败：' + error.message)
   }
 }
+
+// 提示词文件的绝对路径：库目录通常在项目之外，相对路径用不上
+const pathOf = (prompt) => directory.replace(/\/$/, '') + '/' + prompt.file
 
 export function register(on, options) {
   const configuredDirectory = options.promptsDirectory || '~/.claude/prompts'
@@ -185,9 +188,10 @@ export function register(on, options) {
           ? Code({ source: current.frontmatter, language: 'yaml' })
           : Text({ dimColor: true, children: ['frontmatter 为空。'] })),
       current && Box({ gap: 1, children: [
-        Button({ key: 'insert', onPress: () => fillPrompt($, current, 'insert'), children: ['插入光标处'] }),
-        Button({ key: 'append', onPress: () => fillPrompt($, current, 'append'), children: ['追加到末尾'] }),
-        Button({ key: 'replace', onPress: () => fillPrompt($, current, 'replace'), children: ['替换输入内容'] }),
+        Button({ key: 'insert', onPress: () => fillText($, current.text, '已填入：' + current.name, 'insert'), children: ['插入光标处'] }),
+        Button({ key: 'append', onPress: () => fillText($, current.text, '已填入：' + current.name, 'append'), children: ['追加到末尾'] }),
+        Button({ key: 'replace', onPress: () => fillText($, current.text, '已填入：' + current.name, 'replace'), children: ['替换输入内容'] }),
+        Button({ key: 'path', onPress: () => fillText($, pathOf(current), '已插入路径：' + current.file, 'insert'), children: ['插入文件路径'] }),
       ] }),
       Box({ gap: 1, children: [
         Button({ key: 'refresh', onPress: () => loadLibrary($, configuredDirectory), children: ['刷新'] }),
