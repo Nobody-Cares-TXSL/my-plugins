@@ -18,7 +18,7 @@
     │   ├── register.js                #   启动入口：import 各 mod 并调用
     │   ├── prompts.js                 #   Prompt Library 面板
     │   ├── html-link.js               #   会话里的 .html 路径可点，点击开浏览器
-    │   ├── prompt-optimize.js         #   提交时把口语化提示词改写成任务导向描述
+    │   ├── prompt-optimize.js         #   输入框上方三档优化草稿按钮，回填不发送
     │   └── README.md                  #   mod 说明
     └── skills/                         # 目录型 skills
         ├── explain/SKILL.md            #   代码解释（Claude Code CLI / Codex）
