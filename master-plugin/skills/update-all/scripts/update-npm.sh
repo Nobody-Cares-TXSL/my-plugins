@@ -30,12 +30,17 @@ done
 
 echo "--- Updating npm global packages ---"
 # npm update -g 会重算整棵依赖树（实测空跑 ~5 分钟），先查 outdated（~14 秒）再决定是否真装
-outdated=$(npm outdated -g 2>/dev/null || true)
-if [ -z "$outdated" ]; then
-  echo "  ✅ 全部已是最新，跳过 npm update -g"
-else
+# 三种结果要分开：有更新 / 确实最新 / 检查失败（网络故障时输出为空，不能当成"最新"）
+# 注意 npm outdated 有更新时也返回 1，所以先看输出，再看退出码
+rc=0
+outdated=$(npm outdated -g 2>/dev/null) || rc=$?
+if [ -n "$outdated" ]; then
   echo "$outdated" | sed 's/^/  /'
   npm update -g 2>&1
+elif [ "$rc" -eq 0 ]; then
+  echo "  ✅ 全部已是最新，跳过 npm update -g"
+else
+  echo "  ⚠️  npm outdated 检查失败（退出码 $rc），未执行更新，请检查网络后重试"
 fi
 echo ""
 

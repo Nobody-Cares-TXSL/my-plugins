@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# aa.sh — auto_answer 单入口脚本
+# aa.sh — auto-answer 单入口脚本
 #
 # 用法（会话名走环境变量 AA_SESSION，默认 auto）：
 #   aa.sh doctor

@@ -2,11 +2,7 @@
 name: update-all
 description: 一键更新所有已启用 Claude Code 插件、npm/pipx/uv tool 包、opencli、agent-reach、notebooklm、opencode 并同步 Obsidian 文档；也可传组件名只更新单个组件
 argument-hint: [plugins|opencode|opencli|agent-reach|notebooklm|npm|pipx|uv]
-allowed-tools:
-  - Bash
-  - Read
-  - Edit
-  - Write
+allowed-tools: Bash Read Edit Write
 ---
 
 # update-all — 工具链更新

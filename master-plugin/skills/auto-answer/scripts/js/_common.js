@@ -1,4 +1,4 @@
-// _common.js — auto_answer 公共工具（由 lib.sh 的 build_js 拼在主脚本之前）
+// _common.js — auto-answer 公共工具（由 lib.sh 的 build_js 拼在主脚本之前）
 // 用 window.__aa 包装：多次 eval 共享页面上下文，重复赋值幂等，且不泄漏顶层变量
 window.__aa = (() => {
   const norm = s => String(s || '').replace(/\s+/g, ' ').trim();

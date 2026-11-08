@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# lib.sh — auto_answer 脚本公共库
+# lib.sh — auto-answer 脚本公共库
 #
 # 提供：PATH 修复、opencli eval 封装、JS 组装（含答案 JSON 注入）
 set -euo pipefail
@@ -12,7 +12,7 @@ _nvm_bin="$(ls -d "$HOME"/.nvm/versions/node/*/bin 2>/dev/null | sort -V | tail 
 [ -n "$_nvm_bin" ] && export PATH="$_nvm_bin:$PATH"
 
 command -v opencli >/dev/null 2>&1 || {
-  echo "[auto_answer] 找不到 opencli，请先安装：npm install -g @jackwener/opencli" >&2
+  echo "[auto-answer] 找不到 opencli，请先安装：npm install -g @jackwener/opencli" >&2
   exit 1
 }
 
@@ -45,7 +45,7 @@ PY
 }
 
 # aa_ensure_bound <会话名> —— 标签页丢失（about:blank）时自动重新绑定
-# 返回 0 表示会话可用；重新 bind 后仍不可用则返回 1
+# 只做重绑，不阻塞后续命令：绑不上时由调用方的 eval 自己报错，比在守卫里静默失败更可诊断
 aa_ensure_bound() {
   local session="$1" url
   # 加超时：会话失效时 eval 可能挂起，不能让守卫本身卡死流程
@@ -62,7 +62,7 @@ aa_ensure_bound() {
 # 大文件按块注入 base64，绕过 argv 长度上限；页面侧由 js/upload_file.js 组装
 aa_upload_file() {
   local session="$1" file="$2"
-  [ -f "$file" ] || { echo "[auto_answer] 文件不存在: $file" >&2; return 1; }
+  [ -f "$file" ] || { echo "[auto-answer] 文件不存在: $file" >&2; return 1; }
 
   local tmpdir n i
   tmpdir="$(mktemp -d "${TMPDIR:-/tmp}/aa_upload.XXXXXX")"

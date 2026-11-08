@@ -1,13 +1,11 @@
 ---
-name: auto_answer
+name: auto-answer
 description: 基于 opencli browser 的自动答题技能。绑定浏览器标签页，读取题目，完成选择题、判断题、填空题的作答。
 argument-hint: [会话名，默认 auto]
-allowed-tools:
-  - Bash
-  - Read
+allowed-tools: Bash Read
 ---
 
-# auto_answer — 自动答题
+# auto-answer — 自动答题
 
 通过 opencli browser 操作浏览器，读取在线考试/练习题目并自动作答。
 所有浏览器交互都走 `${CLAUDE_SKILL_DIR}/scripts/aa.sh`，**不要手写内联 JS**（长内联 JS 的引号/换行转义极易出错）。

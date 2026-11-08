@@ -2,12 +2,7 @@
 name: distill-session
 description: 复盘当前会话中调用插件遇到的摩擦，蒸馏成插件优化清单并逐条确认修复。当用户说「复盘这次会话」「用插件又出问题了」「看看会话里有什么可以优化插件的地方」时使用。
 argument-hint: [可选：聚焦的插件名]
-allowed-tools:
-  - Read
-  - Edit
-  - Write
-  - Bash
-  - AskUserQuestion
+allowed-tools: Read Edit Write Bash AskUserQuestion
 ---
 
 # distill-session — 会话摩擦蒸馏

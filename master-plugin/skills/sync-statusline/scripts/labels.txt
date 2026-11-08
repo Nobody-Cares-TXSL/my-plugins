@@ -27,5 +27,5 @@ explain	/explain:解释选中代码
 deep-read	/deep-read:智能阅读
 write-docx	/write-docx:Word 文档
 distill-session	/distill-session:复盘会话
-auto_answer	/auto_answer:自动答题
+auto-answer	/auto-answer:自动答题
 sync-statusline	/sync-statusline:同步状态栏命令

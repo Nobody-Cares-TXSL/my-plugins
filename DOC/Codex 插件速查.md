@@ -266,7 +266,7 @@ enabled = false   # 禁用但不卸载
 | 含 hooks 的插件无法提交公共目录 | hooks 插件不符合公共目录资格（官方未给修法；实务上可考虑把 hooks 移出公共版本） |
 | 项目 config.toml 不生效 | Codex 只为**受信任项目**加载项目设置 |
 | 测试插件影响个人市场配置 | 用 repo 市场（`<repo>/.agents/plugins/marketplace.json`）注册开发中的插件，别动 `~/.agents/` 下的个人配置 |
-| 找不到 `codex plugin install/list/enable/disable/package/add` | 这些子命令**不存在**。安装和测试本地插件用 **ChatGPT desktop app**（或 CLI 的 `/plugins` 浏览器）；项目级启停靠 `.codex/config.toml` 的 `[plugins."x@y"] enabled=`；市场管理用 `codex plugin marketplace …` |
+| 找不到 `codex plugin install/enable/disable/package` | 这些子命令**不存在**。`codex plugin add <PLUGIN[@MARKETPLACE]>`、`codex plugin list`、`codex plugin remove` 在 CLI 0.167.0 实测可用；项目级启停靠 `.codex/config.toml` 的 `[plugins."x@y"] enabled=`；市场管理用 `codex plugin marketplace …` |
 
 ## 与 Claude Code 插件的对照（同名概念，不同实现）
 

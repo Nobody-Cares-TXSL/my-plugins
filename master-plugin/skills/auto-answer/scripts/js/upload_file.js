@@ -18,11 +18,15 @@
   const file = new File([arr], name, { type });
 
   // 优先 iframe（考试作答区），其次主文档
+  // allDocs() 把主文档排在第一位，所以不能按顺序取第一个命中；先找 iframe，找不到再退回主文档
+  const docs = AA.allDocs();
   let input = null;
-  for (const c of AA.allDocs()) {
+  for (const c of docs) {
+    if (c.doc === document) continue;
     const el = c.doc.querySelector('input[type=file]');
     if (el) { input = el; break; }
   }
+  if (!input) input = document.querySelector('input[type=file]');
   if (!input) return JSON.stringify({ ok: false, error: 'no file input' });
 
   const dt = new DataTransfer();

@@ -33,11 +33,17 @@ from pathlib import Path
 settings_path, cache_path = Path(sys.argv[1]), Path(sys.argv[2])
 enabled = json.loads(settings_path.read_text(encoding="utf-8")).get("enabledPlugins", {})
 
+# hooks.json 的 modules 通常只指向一个统一入口（register.js），真正的 mod 在它的 import 里。
+# 因此要顺着相对 import 递归，否则只能扫到入口文件自身注册的命令。
+IMPORT_RE = re.compile(r"""^\s*import\s[^'"]*['"](\.{1,2}/[^'"]+)['"]""", re.M)
+REGISTER_RE = re.compile(r"command\.register\(\s*\{(.*?)\}", re.S)
+NAME_RE = re.compile(r"""name:\s*['"]([^'"]+)['"]""")
+
 names, seen = [], set()
 for d in sorted(cache_path.glob("*/*/*/")):
     parts = d.parts
     pid = f"{parts[-2]}@{parts[-3]}"
-    if not enabled.get(pid) or parts[-2] in seen:
+    if not enabled.get(pid) or pid in seen:
         continue
     hj = d / "hooks" / "hooks.json"
     if not hj.is_file():
@@ -48,16 +54,21 @@ for d in sorted(cache_path.glob("*/*/*/")):
         continue
     if not mods:
         continue  # 不是 mod
-    for mp in mods:
-        src = d / "hooks" / mp
-        if not src.is_file():
+
+    visited, queue = set(), [d / "hooks" / mp for mp in mods]
+    while queue:
+        src = queue.pop(0)
+        if src in visited or not src.is_file():
             continue
+        visited.add(src)
         text = src.read_text(encoding="utf-8")
-        for m in re.finditer(r"command\.register\(\s*\{(.*?)\}", text, re.S):
-            nm = re.search(r"name:\s*'([^']+)'", m.group(1))
+        for m in REGISTER_RE.finditer(text):
+            nm = NAME_RE.search(m.group(1))
             if nm and nm.group(1) not in names:
                 names.append(nm.group(1))
-    seen.add(parts[-2])
+        for rel in IMPORT_RE.findall(text):
+            queue.append((src.parent / rel).resolve())
+    seen.add(pid)
 print("\n".join(names))
 PYEOF
 )

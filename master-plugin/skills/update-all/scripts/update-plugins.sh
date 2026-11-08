@@ -10,11 +10,13 @@ SETTINGS="$HOME/.claude/settings.json"
 echo "--- Updating enabled Claude Code plugins ---"
 
 # 读取已启用插件列表并逐个更新
+# enabledPlugins 的值是布尔状态，只取明确为 true 的；只读键名会把禁用的也更新一遍
 PLUGINS=$(python3 -c "
 import json, sys
 d = json.load(open('$SETTINGS'))
-for k in d.get('enabledPlugins', {}):
-    print(k)
+for k, v in d.get('enabledPlugins', {}).items():
+    if v is True:
+        print(k)
 ")
 
 for plugin in $PLUGINS; do

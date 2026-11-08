@@ -21,6 +21,9 @@ claude --plugin-dir ./master-plugin
 # 验证插件
 claude plugin validate ./master-plugin
 
+# 跑全部测试（mod 测试 + Node 测试 + Shell 测试）
+bash master-plugin/tests/run-all.sh
+
 # 安装/更新
 /plugin marketplace add Nobody-Cares-TXSL/my-plugins
 /plugin install master-plugin
@@ -32,12 +35,13 @@ claude plugin update master-plugin
 
 ## 开发约定
 
-- 每次git推送后都读取 `.claude-plugin/plugin.json` **和** `.codex-plugin/plugin.json`，将两者的 `version` 字段 PATCH 版本号 +1（如 `1.0.1` → `1.0.2`），写回文件。**两个清单必须同步 bump**，否则两个 agent 看到的版本号不一致；Claude Code CLI 还会因缓存键不变而无法检测到更新。
+- 每次提交前读取 `.claude-plugin/plugin.json` **和** `.codex-plugin/plugin.json`，将两者的 `version` 字段 PATCH 版本号 +1（如 `1.0.1` → `1.0.2`），写回文件，让版本变更随本次提交一起入库。**两个清单必须同步 bump**，否则两个 agent 看到的版本号不一致；Claude Code CLI 还会因缓存键不变而无法检测到更新。
 - 新组件放 `skills/<name>/SKILL.md`（目录型），不用 `commands/`
-- SKILL.md frontmatter：`description` 必填，`allowed-tools` 按需声明
+- SKILL.md frontmatter 遵循 [Agent Skills 规范](https://agentskills.io/specification)：`name` 必填，只允许 `[a-z0-9-]` 且必须与目录名一致；`description` 必填；`allowed-tools` 用空格分隔字符串（不是 YAML 数组）；`compatibility` 声明环境依赖。`argument-hint` 是 Claude 专有扩展，Codex 会忽略，保留无妨
+- 测试文件位置：mod 测试放 `tests/*.test.ts`（用 `claude plugin test`）；skill 的 Node/Shell 测试放 `skills/<名>/scripts/test/`（分别用 `node` / `bash` 直跑）。`tests/run-all.sh` 统一执行
 - push skill 依赖约定式提交规范（Conventional Commits），需用户两次确认（commit + push）
 - update-all 的 shell 脚本位于 `skills/update-all/scripts/`，使用 `set -euo pipefail`
-- update-my-plugins 流程：优化技能 → 同步 CLAUDE.md/README.md → bump 版本 → push → 更新本地插件
+- update-my-plugins 流程：优化技能 → 同步 CLAUDE.md/README.md → 提交前 bump 版本（随本次提交入库）→ push → 更新本地插件
 - sync-statusline 的 shell 脚本位于 `skills/sync-statusline/scripts/`，用 `set -euo pipefail`；中文显示文本维护在同目录 `labels.txt`（`<命令名><TAB><显示文本>`，`#` 分组），命令名由脚本自动扫描，新增命令时补一行映射
 - 所有需要网络的脚本设置 `http_proxy/https_proxy=http://127.0.0.1:7890`
 

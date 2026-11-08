@@ -13,8 +13,6 @@ set -euo pipefail
 DL_DIR="$HOME/下载"
 SCAN_DIRS=("/usr/local/bin" "$HOME/.local/bin" "$HOME/.cargo/bin" "/opt")
 
-mkdir -p "$DL_DIR"
-
 # 判断是否散装：非符号链接 + 不属于 dpkg + 是 ELF
 is_standalone() {
   local f="$1"
@@ -175,28 +173,39 @@ download_url() {
   local fname="${url%%\?*}"
   fname="${fname##*/}"
   [ -n "$fname" ] || { echo "无法从 URL 推断文件名"; exit 1; }
+  mkdir -p "$DL_DIR"
   export http_proxy="${http_proxy:-http://127.0.0.1:7890}"
   export https_proxy="${https_proxy:-http://127.0.0.1:7890}"
+  local dest="$DL_DIR/$fname"
+  # 先下到临时文件再原子替换：curl -o 会先截断目标，下载失败会把已有的同名文件一起毁掉
+  local tmp
+  tmp="$(mktemp "$DL_DIR/.$fname.XXXXXX")"
+  # 双引号：trap 在脚本退出时才执行，那时 local 已出作用域，必须当场展开路径
+  trap "rm -f '$tmp'" EXIT
   echo "下载: $url"
-  echo "到:   $DL_DIR/$fname"
+  echo "到:   $dest"
   # -f 必不可少：GitHub 对不存在的 release 资产返回 404 页面而不是错误码，
   # 不加 -f 会把 "Not Found" 这几个字节当二进制存下来，还打印"完成"，
   # 照此安装会把目标程序替换成 9 字节的文本文件。
-  if ! timeout 600 curl -fL --progress-bar -o "$DL_DIR/$fname" "$url"; then
+  if ! timeout 600 curl -fL --progress-bar -o "$tmp" "$url"; then
     echo "下载失败：$url" >&2
     echo "常见原因：资产名与版本不匹配（如该版本只发 musl 未发 gnu）。" >&2
     echo "先查实际资产名：" >&2
     echo "  gh release view --repo <owner/repo> --json assets -q '.assets[].name'" >&2
-    rm -f "$DL_DIR/$fname"
+    echo "已保留原有文件：$dest" >&2
     exit 1
   fi
   # 双重保险：下载结果必须是可识别的包/可执行文件，不能是 HTML 或纯文本
-  if [ "$(stat -c '%s' "$DL_DIR/$fname")" -lt 1024 ]; then
-    echo "下载内容异常（$(stat -c '%s' "$DL_DIR/$fname") 字节），已删除：$DL_DIR/$fname" >&2
-    rm -f "$DL_DIR/$fname"
+  local size
+  size="$(stat -c '%s' "$tmp")"
+  if [ "$size" -lt 1024 ]; then
+    echo "下载内容异常（$size 字节），已丢弃：$tmp" >&2
+    echo "已保留原有文件：$dest" >&2
     exit 1
   fi
-  echo "完成: $DL_DIR/$fname"
+  mv -f "$tmp" "$dest"
+  trap - EXIT
+  echo "完成: $dest"
   echo ""
 
   # 目标路径决定安装命令：目录可写则免 sudo，否则加 sudo
@@ -226,7 +235,8 @@ download_url() {
       ;;
     *.zip)
       if [ -n "$dir" ]; then
-        echo "  unzip -o ~/下载/$fname $name -d $dir && ${sudo}chmod +x $target"
+        # unzip 自己就要写 $dir，sudo 不能只加在后面的 chmod 上
+        echo "  ${sudo}unzip -o ~/下载/$fname $name -d $dir && ${sudo}chmod +x $target"
       else
         echo "    unzip ~/下载/$fname <二进制名> -d /usr/local/bin"
       fi

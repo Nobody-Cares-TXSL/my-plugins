@@ -1,3 +1,4 @@
 {
+  "_comment": "Claude Code Mods 入口。Codex 不认 modules 字段，由 .codex-plugin/plugin.json 的 \"hooks\": {} 显式覆盖为空，勿删。",
   "modules": ["./register.js"]
 }

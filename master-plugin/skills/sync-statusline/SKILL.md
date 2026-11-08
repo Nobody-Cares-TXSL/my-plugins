@@ -2,10 +2,7 @@
 name: sync-statusline
 description: 同步 ~/.claude/statusline.zsh 的斜杠命令速查行。装/卸 mod、增删本插件技能后，状态栏第 2、3 行的命令列表会过期，用此技能重新生成。触发词：同步状态栏、statusline 命令、状态栏命令过期。
 argument-hint: [无参数]
-allowed-tools:
-  - Bash
-  - Read
-  - Edit
+allowed-tools: Bash Read Edit
 ---
 
 # sync-statusline — 状态栏命令同步

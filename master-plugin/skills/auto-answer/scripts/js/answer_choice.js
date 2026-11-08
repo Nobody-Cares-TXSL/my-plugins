@@ -18,7 +18,16 @@
   // 也可直接给选项文本，按包含匹配
   const matchByText = (l, text) => AA.visText(l).includes(text);
 
+  // label 当前是否已选中（与 verify.js 同判据：aria-checked 或原生 checked）
+  const isChecked = l => {
+    if (l.getAttribute('aria-checked') === 'true') return true;
+    const inp = l.querySelector('input');
+    return !!inp && inp.checked;
+  };
+
   // ===== 单选 / 多选 =====
+  // 多选的 label 点击是切换语义：已选中的再点会取消。重复执行必须跳过已选项，
+  // 否则补答时会把上一轮选好的多选项取消掉。
   Object.keys(ANSWERS.choice || {}).forEach(qk => {
     const item = items[+qk - 1];
     if (!item) { log.push('Q' + qk + ' ITEM-MISSING'); return; }
@@ -26,8 +35,10 @@
     (ANSWERS.choice[qk] || []).forEach(ans => {
       const isLetter = /^[A-Za-z]$/.test(ans);
       const target = labels.find(l => isLetter ? matchByLetter(l, ans.toUpperCase()) : matchByText(l, ans));
-      if (target) { click(target); log.push('Q' + qk + ' ' + ans + ' OK'); }
-      else log.push('Q' + qk + ' ' + ans + ' MISS');
+      if (!target) { log.push('Q' + qk + ' ' + ans + ' MISS'); return; }
+      if (isChecked(target)) { log.push('Q' + qk + ' ' + ans + ' ALREADY'); return; }
+      click(target);
+      log.push('Q' + qk + ' ' + ans + ' OK');
     });
   });
 

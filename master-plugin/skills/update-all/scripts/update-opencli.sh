@@ -20,10 +20,15 @@ trap cleanup EXIT
 # 更新 CLI
 echo "--- Updating opencli CLI ---"
 # 单包 npm update 同样重算依赖树，先查再装
-if npm outdated -g @jackwener/opencli 2>/dev/null | grep -q .; then
+# npm outdated 有更新时返回 1，网络故障时输出为空；只看退出码会把两者混为一谈
+rc=0
+outdated=$(npm outdated -g @jackwener/opencli 2>/dev/null) || rc=$?
+if [ -n "$outdated" ]; then
   npm update -g @jackwener/opencli 2>&1
-else
+elif [ "$rc" -eq 0 ]; then
   echo "  ✅ 已是最新"
+else
+  echo "  ⚠️  npm outdated 检查失败（退出码 $rc），跳过 opencli 更新"
 fi
 echo ""
 
@@ -44,7 +49,8 @@ get_skill_names() {
 REMOTE=$(get_skill_names "$TMPDIR_OPENCLI/skills" | sort)
 # 本地只统计 opencli 生态的 skill（opencli-* 前缀 + smart-search），
 # 避免把独立 skill（find-skills、tdd 等）误判为"已移除"
-LOCAL=$(get_skill_names "$AGENT_SKILLS" | grep -E '^(opencli-|smart-search$)' | sort)
+# 首次运行时本地一个都没有，grep 无匹配返回 1，在 pipefail 下会直接终止脚本
+LOCAL=$(get_skill_names "$AGENT_SKILLS" | grep -E '^(opencli-|smart-search$)' | sort || true)
 
 # 检测增删
 ADDED=$(comm -23 <(echo "$REMOTE") <(echo "$LOCAL") | tr '\n' ' ')
@@ -57,9 +63,11 @@ UPDATED=$(comm -12 <(echo "$REMOTE") <(echo "$LOCAL") | tr '\n' ' ')
 [ -z "$ADDED$REMOVED$UPDATED" ] && echo "  No changes"
 
 # 同步：更新已有 + 新增
+# 用 rsync --delete 而不是 cp -r：上游删掉的文件也要从本地消失，
+# 否则残留文件会让 Codex/Claude 继续发现已废弃的内容
 for skill_name in $REMOTE; do
   mkdir -p "$AGENT_SKILLS/$skill_name"
-  cp -r "$TMPDIR_OPENCLI/skills/$skill_name/"* "$AGENT_SKILLS/$skill_name/"
+  rsync -a --delete "$TMPDIR_OPENCLI/skills/$skill_name/" "$AGENT_SKILLS/$skill_name/"
 done
 
 # 清理：只删除不再存在的 opencli skill 的符号链接（不删目录，不动非 opencli skill）
@@ -69,9 +77,15 @@ for skill_name in $REMOVED; do
 done
 
 # 重建 symlinks（只重建 opencli repo 中的 skills）
+# 目标是真实目录时不能静默覆盖（ln -sf 会在目录内建同名链接），先备份
 for skill_name in $REMOTE; do
   link_path="$SKILLS_DIR/$skill_name"
-  ln -sf ../../.agents/skills/"$skill_name" "$link_path"
+  mkdir -p "$SKILLS_DIR"
+  if [ -e "$link_path" ] && [ ! -L "$link_path" ]; then
+    echo "  警告：$link_path 是真实目录，已备份为 .bak 后改为符号链接" >&2
+    mv "$link_path" "$link_path.bak"
+  fi
+  ln -sfn ../../.agents/skills/"$skill_name" "$link_path"
 done
 
 echo ""

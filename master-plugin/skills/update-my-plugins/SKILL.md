@@ -2,13 +2,7 @@
 name: update-my-plugins
 description: 优化 my-plugins 中的技能或 hooks mod 并推送更新到 GitHub，然后更新本地插件
 argument-hint: <目标> <优化说明>
-allowed-tools:
-  - Read
-  - Edit
-  - Write
-  - Bash
-  - AskUserQuestion
-  - Skill
+allowed-tools: Read Edit Write Bash AskUserQuestion Skill
 ---
 
 # update-my-plugins — 技能/mod 优化与发布
