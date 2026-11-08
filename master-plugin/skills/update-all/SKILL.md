@@ -1,7 +1,7 @@
 ---
 name: update-all
 description: 一键更新所有已启用 Claude Code 插件、npm/pipx/uv tool 包、opencli、agent-reach、notebooklm、opencode 并同步 Obsidian 文档；也可传组件名只更新单个组件
-argument-hint: [plugins|opencode|commands|opencli|agent-reach|notebooklm|npm|pipx|uv]
+argument-hint: [plugins|opencode|opencli|agent-reach|notebooklm|npm|pipx|uv]
 allowed-tools:
   - Bash
   - Read
@@ -25,7 +25,6 @@ allowed-tools:
 |--------|------|---------|
 | `plugins` | `update-plugins.sh` | 已启用 Claude Code 插件 |
 | `opencode` | `update-opencode.sh` | opencode CLI 二进制 |
-| `commands` | `update-opencode-commands.sh` | opencode.jsonc 命令同步 |
 | `opencli` | `update-opencli.sh` | opencli CLI + skills 生态 |
 | `agent-reach` | `update-agent-reach.sh` | agent-reach CLI + skill |
 | `notebooklm` | `update-notebooklm.sh` | notebooklm CLI + skill |
@@ -38,21 +37,20 @@ allowed-tools:
 
 ### 任务追踪
 
-开始前，若当前环境注册了 `TaskCreate`/`TaskUpdate`，就创建以下 13 个任务并逐步更新为 in_progress → completed；未注册则顺序执行，每步结束向用户简报进度。两种方式结果等价，不要因缺工具跳过步骤：
+开始前，若当前环境注册了 `TaskCreate`/`TaskUpdate`，就创建以下 12 个任务并逐步更新为 in_progress → completed；未注册则顺序执行，每步结束向用户简报进度。两种方式结果等价，不要因缺工具跳过步骤：
 
 1. **版本快照（更新前）** — snapshot.sh before，保存 UPDATE_BEFORE
 2. **Claude Code 插件** — update-plugins.sh
 3. **opencode CLI** — update-opencode.sh（curl 二进制更新）
-4. **opencode commands** — update-opencode-commands.sh
-5. **npm 全局包** — update-npm.sh（须在 opencli 之前）
-6. **pipx 包** — update-pipx.sh（须在 agent-reach/notebooklm 之前）
-7. **uv tool 包** — `uv tool upgrade --all`（与 pipx 并列的独立渠道，互不覆盖）
-8. **opencli** — update-opencli.sh（含 nvm 加载；npm 全量已跑过，此处为 no-op）
-9. **agent-reach** — update-agent-reach.sh（pipx 全量已跑过，此处为 no-op）
-10. **notebooklm** — update-notebooklm.sh（同上）
-11. **散装二进制检查** — check-hard-updates.sh（只读扫描 + 查最新版 + AskUserQuestion 让用户选 + 下载到 ~/下载，**由用户手动安装**）
-12. **版本快照（更新后）+ 对比** — snapshot.sh after，输出变更摘要
-13. **更新 Obsidian 文档** — README.md
+4. **npm 全局包** — update-npm.sh（须在 opencli 之前）
+5. **pipx 包** — update-pipx.sh（须在 agent-reach/notebooklm 之前）
+6. **uv tool 包** — `uv tool upgrade --all`（与 pipx 并列的独立渠道，互不覆盖）
+7. **opencli** — update-opencli.sh（含 nvm 加载；npm 全量已跑过，此处为 no-op）
+8. **agent-reach** — update-agent-reach.sh（pipx 全量已跑过，此处为 no-op）
+9. **notebooklm** — update-notebooklm.sh（同上）
+10. **散装二进制检查** — check-hard-updates.sh（只读扫描 + 查最新版 + AskUserQuestion 让用户选 + 下载到 ~/下载，**由用户手动安装**）
+11. **版本快照（更新后）+ 对比** — snapshot.sh after，输出变更摘要
+12. **更新 Obsidian 文档** — README.md
 
 完成后输出 reload 提示。
 
@@ -68,7 +66,6 @@ allowed-tools:
 - `update-pipx.sh` — pipx 安装的 CLI
 - （uv tool 无独立脚本，直接 `uv tool upgrade --all`）
 - `update-opencode.sh` — opencode CLI 二进制更新
-- `update-opencode-commands.sh` — opencode.jsonc commands 同步（中文描述映射见 `commands-desc.txt`）
 - `check-hard-updates.sh` — 发现散装二进制（apt/npm/pipx 管不到的），只读检查 + 通用下载器；**不自动安装**
 
 ### 执行命令
@@ -90,12 +87,6 @@ bash ${CLAUDE_SKILL_DIR}/scripts/update-plugins.sh
 
 ```bash
 bash ${CLAUDE_SKILL_DIR}/scripts/update-opencode.sh
-```
-
-#### opencode commands 同步
-
-```bash
-bash ${CLAUDE_SKILL_DIR}/scripts/update-opencode-commands.sh
 ```
 
 #### npm 全局包

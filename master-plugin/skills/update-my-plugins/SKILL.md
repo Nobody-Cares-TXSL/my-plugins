@@ -58,7 +58,7 @@ git -C /home/duan/plugins status --short          # 记下开工前的已有改�
 2. 根据用户的优化说明，对文件进行修改
 3. 修改遵循现有风格和格式
 4. 如有附属文件，一并检查是否需要同步修改：
-   - 技能：`scripts/`、`commands-desc.txt` 等
+   - 技能：`scripts/`、`references/` 等
    - mod：同目录的 `hooks/README.md`（mod 的行为说明只写在这里，不在仓库根 README）
 
 ### 3. 同步仓库文档

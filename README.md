@@ -25,7 +25,6 @@
         ├── push/SKILL.md               #   约定式提交 + 推送（Claude Code CLI / Codex）
         ├── deep-read/SKILL.md          #   智能阅读助手
         ├── update-all/SKILL.md         #   工具链一键更新
-        │   ├── commands-desc.txt       #     opencode 命令中文描述映射
         │   └── scripts/*.sh            #     各组件更新脚本
         ├── auto_answer/SKILL.md        #   基于 opencli browser 的自动答题
         │   └── scripts/                 #     aa.sh 单入口 + js/*.js 浏览器脚本
