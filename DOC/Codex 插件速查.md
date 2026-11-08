@@ -203,7 +203,7 @@ CLI 里的 `/plugins` 可浏览市场插件：方向键浏览、Enter 详情、S
 **`marketplace add` 的合法来源形态**：GitHub 简写（`owner/repo` 或 `owner/repo@ref`）、HTTP/HTTPS Git URL、**SSH Git URL**、本地市场根目录。`--ref` 固定 Git ref；`--sparse PATH` 对 Git 市场做 sparse checkout，**只对 Git 来源有效且可重复**。
 `marketplace list` 打印 Codex 正在考虑的每个市场及其解析出的根路径，包括本地默认市场和配置好的市场快照。
 
-**安装与缓存**：安装后插件进 `~/.codex/plugins/cache/$MARKETPLACE_NAME/$PLUGIN_NAME/$VERSION/`（本地插件 `$VERSION` = `local`），ChatGPT 从缓存副本加载而非直接从市场条目。改了插件文件后，更新市场指向的目录并**重启 ChatGPT desktop** 才生效。
+**安装与缓存**：安装后插件进 `~/.codex/plugins/cache/$MARKETPLACE_NAME/$PLUGIN_NAME/$VERSION/`，`$VERSION` 取清单里的 `version` 字段（`local` 来源的插件同样如此，实测本地市场插件缓存目录是 `2.0.27` 这样的 SemVer，不是 `local`），ChatGPT 从缓存副本加载而非直接从市场条目。改了插件文件后，更新市场指向的目录并**重启 ChatGPT desktop** 才生效。
 
 ## 启用 / 禁用
 

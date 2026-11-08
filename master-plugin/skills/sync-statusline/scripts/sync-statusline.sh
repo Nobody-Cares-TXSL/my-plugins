@@ -15,6 +15,7 @@ LABELS="$SCRIPT_DIR/labels.txt"
 STATUSLINE="$HOME/.claude/statusline.zsh"
 SETTINGS="$HOME/.claude/settings.json"
 CACHE="$HOME/.claude/plugins/cache"
+INSTALLED="$HOME/.claude/plugins/installed_plugins.json"
 SKILLS_DIR="$SCRIPT_DIR/../.."   # scripts/ -> sync-statusline/ -> skills/
 
 DRY_RUN=0
@@ -26,11 +27,11 @@ done
 
 # ---------- 1. 扫描命令名 ----------
 
-mod_cmds=$(python3 - "$SETTINGS" "$CACHE" <<'PYEOF'
+mod_cmds=$(python3 - "$SETTINGS" "$CACHE" "$INSTALLED" <<'PYEOF'
 import json, re, sys
 from pathlib import Path
 
-settings_path, cache_path = Path(sys.argv[1]), Path(sys.argv[2])
+settings_path, cache_path, installed_path = Path(sys.argv[1]), Path(sys.argv[2]), Path(sys.argv[3])
 enabled = json.loads(settings_path.read_text(encoding="utf-8")).get("enabledPlugins", {})
 
 # hooks.json 的 modules 通常只指向一个统一入口（register.js），真正的 mod 在它的 import 里。
@@ -39,11 +40,28 @@ IMPORT_RE = re.compile(r"""^\s*import\s[^'"]*['"](\.{1,2}/[^'"]+)['"]""", re.M)
 REGISTER_RE = re.compile(r"command\.register\(\s*\{(.*?)\}", re.S)
 NAME_RE = re.compile(r"""name:\s*['"]([^'"]+)['"]""")
 
+# 缓存目录按版本号并列（2.0.9 / 2.0.10 / 2.0.27 ...），字符串排序会把 2.0.10 排在
+# 2.0.27 之后、2.0.9 之前，取到的往往是旧版本。权威来源是 installed_plugins.json 的
+# installPath：它记录 CLI 实际加载的那一份。
+installed = {}
+try:
+    for pid, entries in json.loads(installed_path.read_text(encoding="utf-8")).get("plugins", {}).items():
+        for e in entries:
+            p = e.get("installPath")
+            if p:
+                installed[pid] = Path(p)
+except Exception:
+    pass  # 读不到就退回扫缓存目录
+
 names, seen = [], set()
 for d in sorted(cache_path.glob("*/*/*/")):
     parts = d.parts
     pid = f"{parts[-2]}@{parts[-3]}"
     if not enabled.get(pid) or pid in seen:
+        continue
+    # 优先用 installed_plugins.json 指向的目录；没有记录才用缓存里扫到的这个
+    d = installed.get(pid, d)
+    if not d.is_dir():
         continue
     hj = d / "hooks" / "hooks.json"
     if not hj.is_file():

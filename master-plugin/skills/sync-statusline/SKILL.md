@@ -32,7 +32,7 @@ allowed-tools: Bash Read Edit
 
 ## 命令名怎么扫
 
-- **mod**（第 2 行）：读 `~/.claude/settings.json` 的 `enabledPlugins`（值为 `true` 才算启用），扫 `~/.claude/plugins/cache/*/*/*/`，凡 `hooks/hooks.json` 含 `modules` 键的才是 mod，再从 module 源码正则提取 `command.register({ name: '...' })` 的 name（支持跨行写法）。
+- **mod**（第 2 行）：读 `~/.claude/settings.json` 的 `enabledPlugins`（值为 `true` 才算启用），再按 `~/.claude/plugins/installed_plugins.json` 的 `installPath` 定位**实际加载的那份**插件目录（缓存下同一插件并存多个版本，按字符串排序会取到旧版），凡 `hooks/hooks.json` 含 `modules` 键的才是 mod，然后从 module 源码正则提取 `command.register({ name: '...' })` 的 name，并递归跟进其相对 `import`（入口通常只 import 各 mod）。
 - **本插件技能**（第 3 行）：扫 `skills/*/` 目录名。
 
 ## labels.txt 格式
