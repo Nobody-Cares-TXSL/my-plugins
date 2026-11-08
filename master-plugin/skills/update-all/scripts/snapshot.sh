@@ -165,6 +165,16 @@ if command -v pipx &>/dev/null; then
 else
   echo "  not installed"
 fi
+echo ""
+
+# uv tool（与 pipx 并列的独立安装渠道，不归 pipx/npm/apt 管）
+echo "--- uv tool ---"
+if command -v uv &>/dev/null; then
+  # `uv tool list` 输出工具行 + 缩进的命令列表；只取工具行，避免把依赖包算进去
+  uv tool list 2>/dev/null | grep -vE '^\s*-\s' | grep -vE '^\s*$' | sed 's/^/  /' || true
+else
+  echo "  not installed"
+fi
 
 echo ""
 echo "=== 快照结束 ($LABEL) ==="

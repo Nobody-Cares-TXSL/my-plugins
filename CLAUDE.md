@@ -53,3 +53,5 @@ claude plugin update master-plugin
 | opencode CLI | `~/.opencode/bin/opencode` | `opencode upgrade --method curl` |
 | npm 全局包 | `~/.nvm/versions/node/*/lib/node_modules` | `npm update -g`（npm/pnpm/corepack 锁定大版本） |
 | pipx 包 | `~/.local/share/pipx/venvs` | `pipx upgrade-all` |
+| uv tool 包 | `~/.local/share/uv/tools/`（命令软链在 `~/.local/bin/`） | `uv tool upgrade --all` |
+| cargo 安装来源 | `~/.cargo/.crates.toml` | `registry+` 走 `cargo install`，`path+` 必须在源码目录 `cargo install --force --path .` |

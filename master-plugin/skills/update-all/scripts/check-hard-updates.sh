@@ -20,9 +20,10 @@ is_standalone() {
   local f="$1"
   [ -f "$f" ] || return 1
   [ -L "$f" ] && return 1
-  # 排除下载/备份残留（如 magpie.new），它们不是已安装的软件
+  # 排除下载/备份残留（如 magpie.new、foo.bak-20261109-012336），它们不是已安装的软件。
+  # 注意 *.bak 匹配不到带时间戳后缀的 .bak-2026...，所以用 *.bak* 兜住两种形态。
   case "$(basename "$f")" in
-    *.new|*.bak|*.old|*.tmp|*.download) return 1 ;;
+    *.new|*.bak*|*.old|*.tmp|*.download) return 1 ;;
   esac
   dpkg -S "$f" >/dev/null 2>&1 && return 1
   file -b "$f" 2>/dev/null | grep -q '^ELF' || return 1
@@ -46,6 +47,7 @@ declare -A UPSTREAM=(
   [px0]="px0-ai/px0"
   [rtk]="rtk-ai/rtk"
   [alacritty]="alacritty/alacritty"
+  [fzf]="junegunn/fzf"
   [uv]="self: uv self update --dry-run"
   [uvx]="self: uv self update --dry-run"
   [magpie]="self: magpie update check"
@@ -64,18 +66,84 @@ has_self_update() {
   return 1
 }
 
-# 判断更新方式：自更新 / cargo 更新 / 手动下载
+# 判断更新方式：自更新 / uv tool / cargo 更新 / 本地源码 / 手动下载
+#
+# cargo 一条不能只看路径：~/.cargo/bin/ 下混着 registry 安装和 --path 本地源码安装，
+# 后者若按 `cargo install <名>` 更新，会从 crates.io 装回同名上游版本（可能是降级）。
+# 权威判据是 ~/.cargo/.crates.toml 里的来源标记。
+cargo_source_of() {
+  local bin="$1"
+  local toml="$HOME/.cargo/.crates.toml"
+  [ -f "$toml" ] || return 0
+  # 每行形如 "name ver (registry+https://...)" = ["bin1", "bin2"]
+  # 找出 bins 列表里包含该命令名的行，回显其括号内来源
+  while IFS= read -r line; do
+    case "$line" in
+      *"\"$bin\""*)
+        printf '%s\n' "$line" | grep -oE '\((registry\+|path\+)[^)]*\)' | head -1 | tr -d '()'
+        return 0
+        ;;
+    esac
+  done < "$toml"
+}
+
 update_method() {
   local name="$1" path="$2"
   if has_self_update "$name"; then echo "自更新"
-  elif [[ "$path" == *"/.cargo/bin/"* ]]; then echo "cargo 更新"
+  elif [[ "$path" == *"/.local/share/uv/tools/"* ]]; then echo "uv tool"
+  elif [[ "$path" == *"/.cargo/bin/"* ]]; then
+    local src
+    src=$(cargo_source_of "$name")
+    case "$src" in
+      path+file://*) echo "本地源码" ;;
+      registry+*)    echo "cargo 更新" ;;
+      *)             echo "cargo 更新" ;;
+    esac
   else echo "手动下载"
   fi
+}
+
+# 本地源码安装的包，其源码目录（用于给出正确更新命令）
+cargo_path_source_of() {
+  local bin="$1"
+  local toml="$HOME/.cargo/.crates.toml"
+  [ -f "$toml" ] || return 0
+  while IFS= read -r line; do
+    case "$line" in
+      *"\"$bin\""*)
+        printf '%s\n' "$line" | grep -oE 'path\+file://[^)]*' | sed 's|^path+file://||' | head -1
+        return 0
+        ;;
+    esac
+  done < "$toml"
+}
+
+# uv tool 安装的命令是 ~/.local/bin 下的符号链接，is_standalone 会以 [ -L ] 排除，
+# 因此单独扫描。用 `uv tool list` 取工具级清单——不要遍历 tools/*/bin/，
+# 那里混着每个工具的全部依赖包可执行文件（python、tqdm、typer 等），会淹没有效信息。
+discover_uv_tools() {
+  command -v uv >/dev/null 2>&1 || return 0
+  local line tool ver
+  while IFS= read -r line; do
+    case "$line" in
+      # 工具行形如 "harlequin v2.16.2"，命令行以 "- " 开头
+      -*) continue ;;
+      "") continue ;;
+    esac
+    tool=$(printf '%s' "$line" | awk '{print $1}')
+    ver=$(printf '%s' "$line" | awk '{print $2}' | tr -d 'v')
+    [ -n "$tool" ] || continue
+    local path
+    path="$HOME/.local/bin/$tool"
+    printf '%-14s %-34s %-9s %-6s %-9s %s\n' \
+      "$tool" "$path" "$ver" "duan" "uv tool" "self: uv tool upgrade $tool"
+  done < <(uv tool list 2>/dev/null)
 }
 
 discover() {
   printf '%-14s %-34s %-9s %-6s %-9s %s\n' "软件" "路径" "版本" "属主" "更新方式" "上游/查新版"
   printf '%-14s %-34s %-9s %-6s %-9s %s\n' "----" "----" "----" "----" "--------" "----------"
+  discover_uv_tools
   for dir in "${SCAN_DIRS[@]}"; do
     [ -d "$dir" ] || continue
     for f in "$dir"/*; do
@@ -86,6 +154,13 @@ discover() {
       owner=$(stat -c '%U' "$f" 2>/dev/null || echo "?")
       how=$(update_method "$name" "$f")
       up=$(upstream_info "$name")
+      # 本地源码安装没有 crates.io 上游可查，把源码目录顶到最后一列，
+      # 否则使用者会拿 "-" 去猜仓库名，从而装回同名上游版本。
+      if [ "$how" = "本地源码" ]; then
+        local src
+        src=$(cargo_path_source_of "$name")
+        up="path: ${src:-未知}（在此目录 cargo install --force --path .）"
+      fi
       printf '%-14s %-34s %-9s %-6s %-9s %s\n' "$name" "$f" "$ver" "$owner" "$how" "$up"
     done
   done

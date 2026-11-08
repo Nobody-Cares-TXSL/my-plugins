@@ -1,7 +1,7 @@
 ---
 name: update-all
-description: 一键更新所有已启用 Claude Code 插件、npm/pipx 包、opencli、agent-reach、notebooklm、opencode 并同步 Obsidian 文档；也可传组件名只更新单个组件
-argument-hint: [plugins|opencode|commands|opencli|agent-reach|notebooklm|npm|pipx]
+description: 一键更新所有已启用 Claude Code 插件、npm/pipx/uv tool 包、opencli、agent-reach、notebooklm、opencode 并同步 Obsidian 文档；也可传组件名只更新单个组件
+argument-hint: [plugins|opencode|commands|opencli|agent-reach|notebooklm|npm|pipx|uv]
 allowed-tools:
   - Bash
   - Read
@@ -31,13 +31,14 @@ allowed-tools:
 | `notebooklm` | `update-notebooklm.sh` | notebooklm CLI + skill |
 | `npm` | `update-npm.sh` | npm 全局包 |
 | `pipx` | `update-pipx.sh` | pipx 安装的 CLI |
+| `uv` | `uv tool upgrade --all` | uv tool 安装的 CLI（harlequin、laya、paper-search-mcp 等） |
 | `hard` | `check-hard-updates.sh` | 散装二进制（只检查，需手动安装） |
 
 ## 全量流程（无参数）
 
 ### 任务追踪
 
-开始前，若当前环境注册了 `TaskCreate`/`TaskUpdate`，就创建以下 12 个任务并逐步更新为 in_progress → completed；未注册则顺序执行，每步结束向用户简报进度。两种方式结果等价，不要因缺工具跳过步骤：
+开始前，若当前环境注册了 `TaskCreate`/`TaskUpdate`，就创建以下 13 个任务并逐步更新为 in_progress → completed；未注册则顺序执行，每步结束向用户简报进度。两种方式结果等价，不要因缺工具跳过步骤：
 
 1. **版本快照（更新前）** — snapshot.sh before，保存 UPDATE_BEFORE
 2. **Claude Code 插件** — update-plugins.sh
@@ -45,12 +46,13 @@ allowed-tools:
 4. **opencode commands** — update-opencode-commands.sh
 5. **npm 全局包** — update-npm.sh（须在 opencli 之前）
 6. **pipx 包** — update-pipx.sh（须在 agent-reach/notebooklm 之前）
-7. **opencli** — update-opencli.sh（含 nvm 加载；npm 全量已跑过，此处为 no-op）
-8. **agent-reach** — update-agent-reach.sh（pipx 全量已跑过，此处为 no-op）
-9. **notebooklm** — update-notebooklm.sh（同上）
-10. **散装二进制检查** — check-hard-updates.sh（只读扫描 + 查最新版 + AskUserQuestion 让用户选 + 下载到 ~/下载，**由用户手动安装**）
-11. **版本快照（更新后）+ 对比** — snapshot.sh after，输出变更摘要
-12. **更新 Obsidian 文档** — README.md
+7. **uv tool 包** — `uv tool upgrade --all`（与 pipx 并列的独立渠道，互不覆盖）
+8. **opencli** — update-opencli.sh（含 nvm 加载；npm 全量已跑过，此处为 no-op）
+9. **agent-reach** — update-agent-reach.sh（pipx 全量已跑过，此处为 no-op）
+10. **notebooklm** — update-notebooklm.sh（同上）
+11. **散装二进制检查** — check-hard-updates.sh（只读扫描 + 查最新版 + AskUserQuestion 让用户选 + 下载到 ~/下载，**由用户手动安装**）
+12. **版本快照（更新后）+ 对比** — snapshot.sh after，输出变更摘要
+13. **更新 Obsidian 文档** — README.md
 
 完成后输出 reload 提示。
 
@@ -64,6 +66,7 @@ allowed-tools:
 - `update-notebooklm.sh` — notebooklm CLI + skill
 - `update-npm.sh` — npm 全局包
 - `update-pipx.sh` — pipx 安装的 CLI
+- （uv tool 无独立脚本，直接 `uv tool upgrade --all`）
 - `update-opencode.sh` — opencode CLI 二进制更新
 - `update-opencode-commands.sh` — opencode.jsonc commands 同步（中文描述映射见 `commands-desc.txt`）
 - `check-hard-updates.sh` — 发现散装二进制（apt/npm/pipx 管不到的），只读检查 + 通用下载器；**不自动安装**
@@ -109,6 +112,15 @@ bash ${CLAUDE_SKILL_DIR}/scripts/update-npm.sh
 ```bash
 bash ${CLAUDE_SKILL_DIR}/scripts/update-pipx.sh
 ```
+
+#### uv tool 包
+
+```bash
+export http_proxy=http://127.0.0.1:7890 https_proxy=http://127.0.0.1:7890
+uv tool upgrade --all
+```
+
+> 与 pipx 是两个独立渠道：`uv tool list` 里的 harlequin、laya、paper-search-mcp 等不归 pipx 管，pipx 升级不到它们。这两个渠道都不要遍历 `~/.local/share/uv/tools/*/bin/`——那里混着每个工具的全部依赖可执行文件（python、tqdm、typer 等），会淹没有效信息。
 
 #### opencli CLI + Skills
 
@@ -201,7 +213,41 @@ bash ${CLAUDE_SKILL_DIR}/scripts/snapshot.sh after
 4. **下载**：`bash ${CLAUDE_SKILL_DIR}/scripts/check-hard-updates.sh --download <url> <目标路径>`（下载到 `~/下载`，**不安装**；目标路径用于按属主生成准确的安装命令）
 5. **用户手动安装**：脚本给出安装命令，由用户执行（目录不可写时自动带 sudo）
 
-> 更新方式有三类：`自更新`（uv/magpie/rustup 等，走自带命令）、`cargo 更新`（`~/.cargo/bin/` 下的，用 `cargo install <名> --locked`）、`手动下载`（下 release 包后手动装）。后两类不用手动换二进制以外的方式。
+> 更新方式有五类，**按脚本输出的「更新方式」列照做，不要按路径猜**：
+>
+> | 更新方式 | 命令 | 说明 |
+> |---|---|---|
+> | `自更新` | 脚本最后一列给出的命令（`uv self update`、`rustup check` 等） | 走工具自带机制 |
+> | `uv tool` | `uv tool upgrade <名>` | 与 pipx 独立 |
+> | `cargo 更新` | `cargo install <名> --locked` | 来源是 **crates.io**，升级安全 |
+> | `本地源码` | 在该包的源码目录执行 `cargo install --force --path .` | 来源是 **本地 `--path`**，见下方警告 |
+> | `手动下载` | 下 release 包后手动装 | 无包管理器 |
+>
+> **`本地源码` 是危险项，不能当 `cargo 更新` 处理。** 这类包不在 crates.io 上，或虽同名但源码已被本地修改。若误用 `cargo install <名>`，cargo 会去 crates.io 装回同名上游版本，等于把本地改动全部覆盖掉——典型如 `tmux-expose`：本地是二开版 0.1.0，crates.io 上的同名上游是 0.8.0，装回会丢失全部二次开发功能。
+>
+> 脚本用 `~/.cargo/.crates.toml` 判定来源，判据是安装记录里的 `registry+https://...` 还是 `path+file:///...`，不靠路径前缀猜。遇到 `本地源码`，最后一列已给出源码目录，直接在该目录执行 `cargo install --force --path .`。
+
+### 有意不检查的类型
+
+`check-hard-updates.sh` 只列 ELF 二进制。以下**没有出现在结果里是正常的**，不代表漏扫：
+
+| 类型 | 例子 | 为什么不列 | 实际怎么维护 |
+|---|---|---|---|
+| shell / python 本机脚本 | `md-read-hd`、`tmux-suspend-ueberzug`、`mimeapps-guard.sh`、`check-hard-updates` | 不是 ELF，且无上游可查 | 手工改，随仓库/文档同步 |
+| uv tool 命令 | `harlequin`、`hsql`、`laya` | 是 `~/.local/bin` 下的符号链接 | 已在结果中单列，走 `uv tool upgrade` |
+| 软链兼容层 | `fd`→`fdfind`、`magick`→`convert` | 符号链接，指向 APT 管理的真实程序 | 随 APT 更新 |
+| rustup 组件 | `cargo`、`rustc`、`rustfmt`、`clippy` | 都是指向 `rustup` 的符号链接 | `rustup update` |
+| 备份/下载残留 | `*.bak*`、`*.new`、`*.old` | 不是已安装软件 | — |
+
+> 看到某个工具"没被列出"时，先查上表。若它确实是有上游的 ELF 却没出现，多半是 `SCAN_DIRS` 没覆盖它的目录，或它是符号链接。
+
+### 与终端环境文档的职责边界
+
+`04 调研/工具栈/终端环境/`（14 份文档）记录的是另一组工具：Yazi、tmux、Starship、lazygit、Alacritty、ueberzugpp 等。它们的关系是：
+
+- 这些工具的版本**会**出现在 `check-hard-updates.sh` 结果里，可照常更新。
+- 但它们**不在** `snapshot.sh` 采集范围内，所以不会进变更摘要。
+- 本技能**不自动修改**终端环境文档。更新了 Yazi / tmux / Alacritty 之类之后，需要按该目录的 `CLAUDE.md` 规则手工同步，或明确告知用户「终端环境文档未更新」。
 
 ### 完成提示
 
@@ -232,3 +278,5 @@ bash ${CLAUDE_SKILL_DIR}/scripts/snapshot.sh after
 | notebooklm CLI + skill | pipx venv + `~/.claude/skills/notebooklm/` | `teng-lin/notebooklm-py` PyPI |
 | npm 全局包 | `~/.nvm/versions/node/*/lib/node_modules` | `npm update -g` |
 | pipx CLI | `~/.local/share/pipx/venvs/` | `pipx upgrade-all` |
+| uv tool CLI | `~/.local/share/uv/tools/`（命令软链在 `~/.local/bin/`） | `uv tool upgrade --all` |
+| cargo 安装来源 | `~/.cargo/.crates.toml` | 判定 `registry+`（crates.io）还是 `path+`（本地源码） |
