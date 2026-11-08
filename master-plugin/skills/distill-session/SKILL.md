@@ -72,9 +72,15 @@ allowed-tools:
 **证据源不止用户话语**：本次会话的**工具调用轨迹**（哪些报错、重试、往返几次、token 多少）模型可直接读到，比回忆用户语气可靠。隐性摩擦常跨会话才显形，需查转录：
 
 ```bash
-# 当前会话转录（${CLAUDE_SESSION_ID} 由 Claude Code 注入）
-rg -n '<关键词>' ~/.claude/projects/*/${CLAUDE_SESSION_ID}.jsonl
+# 转录文件名是会话 UUID，没有对应的环境变量（CLAUDE_SESSION_ID 在 Bash 里是空的）。
+# 按工作目录定位项目目录，取该目录下最近写入的文件，再用 mtime 与内容自证。
+PROJ="$HOME/.claude/projects/$(pwd | sed 's|^/|-|; s|/|-|g')"
+T=$(ls -t "$PROJ"/*.jsonl 2>/dev/null | head -1)
+echo "$T  $(stat -c%s "$T" 2>/dev/null) 字节  $(stat -c%y "$T" 2>/dev/null)"
+rg -n '<关键词>' "$T"
 ```
+
+> 取到文件后先确认它**就是本次会话**：mtime 应是最近几分钟，且 `rg` 能找到本轮独有的关键词。多会话并行时 `ls -t` 可能取到别的会话，此时按 mtime 排序人工挑，或直接 `rg -l <本轮关键词> "$PROJ"/*.jsonl` 反查。
 
 > 转录里 `type: "user"` 不等于用户发言：需排除 `isMeta: true` 与工具结果（`content` 为 tool_result）。
 

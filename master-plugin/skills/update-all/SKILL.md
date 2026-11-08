@@ -216,7 +216,7 @@ bash ${CLAUDE_SKILL_DIR}/scripts/snapshot.sh after
 >
 > **`本地源码` 是危险项，不能当 `cargo 更新` 处理。** 这类包不在 crates.io 上，或虽同名但源码已被本地修改。若误用 `cargo install <名>`，cargo 会去 crates.io 装回同名上游版本，等于把本地改动全部覆盖掉——典型如 `tmux-expose`：本地是二开版 0.1.0，crates.io 上的同名上游是 0.8.0，装回会丢失全部二次开发功能。
 >
-> 脚本用 `~/.cargo/.crates.toml` 判定来源，判据是安装记录里的 `registry+https://...` 还是 `path+file:///...`，不靠路径前缀猜。遇到 `本地源码`，最后一列已给出源码目录，直接在该目录执行 `cargo install --force --path .`。
+> 脚本用 `~/.cargo/.crates.toml` 判定来源，判据是安装记录里的 `registry+https://...` 还是 `path+file:///...`，不靠路径前缀猜。遇到 `本地源码`，该行下方会另起一行给出源码目录和命令（不塞进表格是为了不撑破列对齐），直接照做即可。
 
 ### 有意不检查的类型
 

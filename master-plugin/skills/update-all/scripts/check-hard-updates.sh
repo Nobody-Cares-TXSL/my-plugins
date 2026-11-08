@@ -154,14 +154,17 @@ discover() {
       owner=$(stat -c '%U' "$f" 2>/dev/null || echo "?")
       how=$(update_method "$name" "$f")
       up=$(upstream_info "$name")
-      # 本地源码安装没有 crates.io 上游可查，把源码目录顶到最后一列，
-      # 否则使用者会拿 "-" 去猜仓库名，从而装回同名上游版本。
+      # 本地源码安装没有 crates.io 上游可查。最后一列只放短标记保证表格对齐，
+      # 完整命令另起一行输出——塞进表格会把 180+ 字符的行撑破对齐。
+      local extra=""
       if [ "$how" = "本地源码" ]; then
         local src
         src=$(cargo_path_source_of "$name")
-        up="path: ${src:-未知}（在此目录 cargo install --force --path .）"
+        up="⚠ 见下方"
+        extra="         └ 源码: ${src:-未知}  →  cargo install --force --path ."
       fi
       printf '%-14s %-34s %-9s %-6s %-9s %s\n' "$name" "$f" "$ver" "$owner" "$how" "$up"
+      [ -n "$extra" ] && printf '%s\n' "$extra"
     done
   done
 }
