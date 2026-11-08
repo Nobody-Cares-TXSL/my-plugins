@@ -176,7 +176,23 @@ download_url() {
   export https_proxy="${https_proxy:-http://127.0.0.1:7890}"
   echo "下载: $url"
   echo "到:   $DL_DIR/$fname"
-  timeout 600 curl -L --progress-bar -o "$DL_DIR/$fname" "$url"
+  # -f 必不可少：GitHub 对不存在的 release 资产返回 404 页面而不是错误码，
+  # 不加 -f 会把 "Not Found" 这几个字节当二进制存下来，还打印"完成"，
+  # 照此安装会把目标程序替换成 9 字节的文本文件。
+  if ! timeout 600 curl -fL --progress-bar -o "$DL_DIR/$fname" "$url"; then
+    echo "下载失败：$url" >&2
+    echo "常见原因：资产名与版本不匹配（如该版本只发 musl 未发 gnu）。" >&2
+    echo "先查实际资产名：" >&2
+    echo "  gh release view --repo <owner/repo> --json assets -q '.assets[].name'" >&2
+    rm -f "$DL_DIR/$fname"
+    exit 1
+  fi
+  # 双重保险：下载结果必须是可识别的包/可执行文件，不能是 HTML 或纯文本
+  if [ "$(stat -c '%s' "$DL_DIR/$fname")" -lt 1024 ]; then
+    echo "下载内容异常（$(stat -c '%s' "$DL_DIR/$fname") 字节），已删除：$DL_DIR/$fname" >&2
+    rm -f "$DL_DIR/$fname"
+    exit 1
+  fi
   echo "完成: $DL_DIR/$fname"
   echo ""
 
