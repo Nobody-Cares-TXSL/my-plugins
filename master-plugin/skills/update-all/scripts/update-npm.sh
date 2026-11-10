@@ -8,25 +8,20 @@ export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
 export http_proxy=http://127.0.0.1:7890
 export https_proxy=http://127.0.0.1:7890
 
-# 开发工具链：只升小版本，跨大版本时回退（大版本变更易破坏环境）
+# 开发工具链：只升小版本，跨大版本会破坏环境（npm/pnpm 大版本改动常伴行为变化）
 LOCKED_TOOLS="npm pnpm corepack"
 
-# 返回版本比较键：major>0 时用 major，0.x 包用 "0.minor"（0.x 的 minor 变更即破坏性）
-major_of() {
-  local pkg_json
-  pkg_json="$(npm root -g)/$1/package.json"
-  [ -f "$pkg_json" ] || return 1
-  python3 -c '
-import json, sys
-parts = json.load(open(sys.argv[1]))["version"].split(".")
-print(parts[0] if parts[0] != "0" else "0." + parts[1])
-' "$pkg_json"
-}
+NPM_ROOT="$(npm root -g)"
 
-declare -A MAJOR_BEFORE
-for tool in $LOCKED_TOOLS; do
-  MAJOR_BEFORE[$tool]=$(major_of "$tool" || echo "")
-done
+# 返回该包版本比较键：major>0 用 major，0.x 用 "0.minor"
+# （0.x 的 minor 变更即破坏性，与 major 同等对待）
+range_of() {
+  local ver major minor _
+  ver=$(sed -n 's/^ *"version": *"\([^"]*\)".*/\1/p' "$NPM_ROOT/$1/package.json" 2>/dev/null | head -1)
+  [ -n "$ver" ] || return 1
+  IFS=. read -r major minor _ <<< "$ver"
+  if [ "$major" = 0 ]; then echo "0.$minor"; else echo "$major"; fi
+}
 
 echo "--- Updating npm global packages ---"
 # npm update -g 会重算整棵依赖树（实测空跑 ~5 分钟），先查 outdated（~14 秒）再决定是否真装
@@ -44,18 +39,20 @@ else
 fi
 echo ""
 
-echo "--- 检查开发工具链大版本 ---"
+# 把锁定工具钉回原大版本：显式给 semver 范围，避免"先升到新 major 再回退"的
+# 窗口期（回退若失败，后续依赖 npm 的步骤会踩到不兼容版本）
+echo "--- 锁定开发工具链大版本 ---"
 for tool in $LOCKED_TOOLS; do
-  before="${MAJOR_BEFORE[$tool]}"
-  after=$(major_of "$tool" || echo "")
-  if [ -z "$before" ] || [ -z "$after" ]; then
-    continue
-  fi
-  if [ "$before" != "$after" ]; then
-    echo "  ⚠️  $tool 跨大版本 $before → $after，回退到 $before.x"
-    npm install -g "$tool@$before" 2>&1 | tail -3
+  key=$(range_of "$tool") || continue
+  installed=$(sed -n 's/^ *"version": *"\([^"]*\)".*/\1/p' "$NPM_ROOT/$tool/package.json" 2>/dev/null | head -1)
+  # 用同一条比较键（major 或 0.minor）比对，避免 "11" 误匹配 "110.0.0"
+  IFS=. read -r ma mi _ <<< "$installed"
+  if [ "$ma" = 0 ]; then now="0.$mi"; else now="$ma"; fi
+  if [ "$now" = "$key" ]; then
+    echo "  ✅ $tool $installed 保持 $key.x"
   else
-    echo "  ✅ $tool 保持 $after.x"
+    echo "  ⚠️  $tool $installed 跨大版本（原 $key.x），钉回"
+    npm install -g "$tool@^$key" 2>&1 | tail -3
   fi
 done
 

@@ -161,38 +161,26 @@ test_agent_skills_uses_global_flag() {
   fi
 }
 
-# 失败项解析：只认 "Failed to update <name>"，不能把 Cannot update /
-# Failed to check skills from 当成可重试项（那是 lock 缺字段或整源不可达）
-test_agent_skills_failure_parser() {
-  local name="失败项解析只取可重试的技能名"
-  local log="$TMP_ROOT/skills-fail.log"
-  printf '\033[38;5;145mUpdating grilling…\033[0m\n' > "$log"
-  printf '  \033[38;5;102m✗ Failed to update grilling: Failed to clone https://x: gnutls_handshake() failed\033[0m\n' >> "$log"
-  printf '  \033[38;5;102m✗ Failed to update tdd: Failed to clone x\033[0m\n' >> "$log"
-  printf '  \033[38;5;102m✗ Cannot update foo: lock file is missing sourceUrl\033[0m\n' >> "$log"
-  printf '  \033[38;5;102m✗ Failed to check skills from https://x\033[0m\n' >> "$log"
-  printf '  \033[38;5;145m✓ Updated opencli-usage\033[0m\n' >> "$log"
-  # 直接复用脚本里的提取逻辑，避免测试与实现漂移
-  local got
-  got=$(sed -E 's/\x1B\[[0-9;]*[A-Za-z]//g' "$log" | tr -d '\r' \
-        | sed -nE 's/^ *✗ Failed to update ([^:]*)(:.*)?$/\1/p' \
-        | sed 's/[[:space:]]*$//' | grep -v '^$' | sort -u | tr '\n' ' ')
-  if [ "$got" = "grilling tdd " ]; then
+# 并发从源头限制，而不是事后解析输出重试。
+# 上游默认 4 路并发（DEFAULT_FETCH_CONCURRENCY），走代理时握手易失败。
+test_agent_skills_limits_concurrency() {
+  local name="update-agent-skills.sh 限制并发数"
+  if grep -q 'SKILLS_CLONE_CONCURRENCY' "$SCRIPTS_DIR/update-agent-skills.sh"; then
     ok "$name"
   else
-    bad "$name" "得到: '$got'"
+    bad "$name" "未设置 SKILLS_CLONE_CONCURRENCY"
   fi
 }
 
-# 重试判定必须看 npx 的退出码：失败时它也打印 ✗ 行，
-# 用 grep 匹配状态判断会把失败误当成功
-test_agent_skills_retry_uses_exit_code() {
-  local name="重试按退出码判定而非输出匹配"
-  if grep -q 'retry_rc=\$?' "$SCRIPTS_DIR/update-agent-skills.sh" \
-     && grep -q '\[ "\$retry_rc" -ne 0 \]' "$SCRIPTS_DIR/update-agent-skills.sh"; then
+# 首轮失败时整轮重跑一次（降为单路并发），不解析输出定位具体技能
+test_agent_skills_reruns_on_failure() {
+  local name="首轮失败后降并发重跑"
+  local s="$SCRIPTS_DIR/update-agent-skills.sh"
+  if grep -q 'if \[ "\$rc" -ne 0 \]' "$s" \
+     && grep -q 'SKILLS_CLONE_CONCURRENCY=1' "$s"; then
     ok "$name"
   else
-    bad "$name" "未找到 retry_rc 的退出码判定"
+    bad "$name" "未找到失败重跑逻辑"
   fi
 }
 
@@ -205,8 +193,8 @@ test_discover_is_readonly
 test_zip_sudo
 test_agent_skills_no_lock
 test_agent_skills_uses_global_flag
-test_agent_skills_failure_parser
-test_agent_skills_retry_uses_exit_code
+test_agent_skills_limits_concurrency
+test_agent_skills_reruns_on_failure
 
 echo ""
 echo "$pass passed, $fail failed"

@@ -47,26 +47,19 @@ echo "--- opencode ---"
 if command -v opencode &>/dev/null; then
   echo "  CLI: $(opencode --version 2>&1 | head -1)"
   # opencode 从 opencode.jsonc 的 skills.paths 加载 skill，不读 ~/.config/opencode/skills（常为空）
+  # 注释先剥掉（jsonc 允许 // 行注释），再用 raw_decode 取第一个完整 JSON 值：
+  # 它和手写括号配平语义相同，但对字符串里出现的 "}" 不会误判
   OC_SKILL_PATHS=$(python3 -c '
-import json, re, sys, os
+import json, sys, os
 p = os.path.expanduser("~/.config/opencode/opencode.jsonc")
 try:
     raw = open(p).read()
 except OSError:
     sys.exit(0)
 raw = "\n".join(l for l in raw.splitlines() if not l.strip().startswith("//"))
-s = raw.find("{")
-if s < 0: sys.exit(0)
-depth = 0
-for i in range(s, len(raw)):
-    if raw[i] == "{": depth += 1
-    elif raw[i] == "}":
-        depth -= 1
-        if depth == 0:
-            end = i + 1; break
 try:
-    data = json.loads(raw[s:end])
-except Exception:
+    data, _ = json.JSONDecoder().raw_decode(raw[raw.find("{"):])
+except ValueError:
     sys.exit(0)
 for pth in data.get("skills", {}).get("paths", []):
     print(os.path.expanduser(pth))
@@ -111,11 +104,18 @@ else
 fi
 echo ""
 
+# pipx 安装的 CLI 版本：一次取全，后面 agent-reach / notebooklm 段直接复用。
+# `pipx list --short` 已经输出 "agent-reach 1.6.1" 这样的行，
+# 不必再启动 agent-reach doctor（0.3s）或 notebooklm --version（1-2s）问一遍。
+pipx_ver() {
+  command -v pipx >/dev/null 2>&1 || return 0
+  pipx list --short 2>/dev/null | awk -v p="$1" '$1 == p {print $2; exit}'
+}
+
 # agent-reach CLI + skill
 echo "--- agent-reach ---"
 if command -v agent-reach &>/dev/null; then
-  # 1.6+ 移除了 --version，版本改从 doctor 的 JSON 取
-  reach_ver=$(agent-reach doctor 2>/dev/null | grep -oE '"version": *"[^"]+"' | head -1 | cut -d'"' -f4 || true)
+  reach_ver=$(pipx_ver agent-reach)
   echo "  CLI: ${reach_ver:-未知}"
 fi
 if [ -f "$REACH_SKILL/SKILL.md" ]; then
@@ -136,7 +136,7 @@ echo ""
 # notebooklm
 echo "--- notebooklm ---"
 if command -v notebooklm &>/dev/null; then
-  echo "  CLI: $(notebooklm --version 2>&1 | head -1)"
+  echo "  CLI: $(pipx_ver notebooklm-py)"
 else
   echo "  CLI: not installed"
 fi
@@ -150,9 +150,20 @@ fi
 echo ""
 
 # npm 全局包
+# 直接读 package.json，不用 `npm ls -g`：后者实测 1.2-6.8 秒（每次重新解析依赖树），
+# 直读 88 毫秒且输出等价。快照要跑 before/after 两遍，这里省得最多。
 echo "--- npm global packages ---"
 if command -v npm &>/dev/null; then
-  npm ls -g --depth=0 2>/dev/null | tail -n +2 | sed 's/^/  /'
+  NPM_ROOT="$(npm root -g 2>/dev/null)"
+  if [ -n "$NPM_ROOT" ] && [ -d "$NPM_ROOT" ]; then
+    # 一层 scope 目录（@scope/pkg）也要展开
+    for pkg_json in "$NPM_ROOT"/*/package.json "$NPM_ROOT"/@*/*/package.json; do
+      [ -f "$pkg_json" ] || continue
+      name=$(sed -n 's/^ *"name": *"\([^"]*\)".*/\1/p' "$pkg_json" | head -1)
+      ver=$(sed -n 's/^ *"version": *"\([^"]*\)".*/\1/p' "$pkg_json" | head -1)
+      [ -n "$name" ] && printf '  %s@%s\n' "$name" "$ver"
+    done | sort
+  fi
 else
   echo "  not installed"
 fi

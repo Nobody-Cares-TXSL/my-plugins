@@ -21,7 +21,7 @@ allowed-tools: Bash Read Edit Write
 |--------|------|---------|
 | `plugins` | `update-plugins.sh` | 已启用 Claude Code 插件 |
 | `opencode` | `update-opencode.sh` | opencode CLI 二进制 |
-| `opencli` | `update-opencli.sh` | opencli CLI + skills 生态 |
+| `opencli` | `update-opencli.sh` | opencli CLI（skill 归 `skills` 组件） |
 | `agent-reach` | `update-agent-reach.sh` | agent-reach CLI + skill |
 | `notebooklm` | `update-notebooklm.sh` | notebooklm CLI + skill |
 | `skills` | `update-agent-skills.sh` | `npx skills` 管理的 `~/.agents/skills` 技能 |
@@ -43,9 +43,9 @@ allowed-tools: Bash Read Edit Write
 5. **pipx 包** — update-pipx.sh（须在 agent-reach/notebooklm 之前）
 6. **uv tool 包** — `uv tool upgrade --all`（与 pipx 并列的独立渠道，互不覆盖）
 7. **opencli** — update-opencli.sh（含 nvm 加载；npm 全量已跑过，此处为 no-op）
-8. **agent-reach** — update-agent-reach.sh（pipx 全量已跑过，此处为 no-op）
-9. **notebooklm** — update-notebooklm.sh（同上）
-10. **npx skills 管理的技能** — update-agent-skills.sh（`~/.agents/skills`，与 opencli 生态有交集，放最后跑以覆盖上游最新）
+8. **agent-reach** — update-agent-reach.sh（pipx 已由步骤 5 覆盖；此处重点是 `update --sync-only` 刷新 skill）
+9. **notebooklm** — update-notebooklm.sh（同上，重点是 `notebooklm skill install`）
+10. **npx skills 管理的技能** — update-agent-skills.sh（`~/.agents/skills`，含 opencli-* 与 smart-search，是这些 skill 的唯一所有者）
 11. **散装二进制检查** — check-hard-updates.sh（只读扫描 + 查最新版 + AskUserQuestion 让用户选 + 下载到 ~/下载，**由用户手动安装**）
 12. **版本快照（更新后）+ 对比** — snapshot.sh after，输出变更摘要
 13. **更新 Obsidian 文档** — README.md
@@ -57,7 +57,7 @@ allowed-tools: Bash Read Edit Write
 所有脚本位于 `scripts/` 目录：
 - `snapshot.sh` — 版本快照
 - `update-plugins.sh` — Claude Code 插件
-- `update-opencli.sh` — opencli CLI + skills
+- `update-opencli.sh` — opencli CLI（skill 归 `update-agent-skills.sh`）
 - `update-agent-reach.sh` — agent-reach CLI + skill
 - `update-notebooklm.sh` — notebooklm CLI + skill
 - `update-agent-skills.sh` — `npx skills` 管理的 `~/.agents/skills` 技能
@@ -112,12 +112,13 @@ uv tool upgrade --all
 
 > 与 pipx 是两个独立渠道：`uv tool list` 里的 harlequin、laya、paper-search-mcp 等不归 pipx 管，pipx 升级不到它们。这两个渠道都不要遍历 `~/.local/share/uv/tools/*/bin/`——那里混着每个工具的全部依赖可执行文件（python、tqdm、typer 等），会淹没有效信息。
 
-#### opencli CLI + Skills
+#### opencli CLI
 
 ```bash
 bash ${CLAUDE_SKILL_DIR}/scripts/update-opencli.sh
 ```
 
+> 只更新 CLI。**skill 不在这里同步**——`opencli-*` 与 `smart-search` 都登记在 `~/.agents/.skill-lock.json`，由下一步的 `update-agent-skills.sh` 统一更新。此前这里另有一份 `git clone` + `rsync` + 建链实现，与 npx 争同一批目录，只能靠执行顺序收敛，已删除。
 > 脚本内部已包含 nvm 加载逻辑，无需手动 source。npm 全量已在前一步跑过，此处的 `npm update -g @jackwener/opencli` 通常为 no-op。
 
 #### agent-reach
@@ -126,7 +127,9 @@ bash ${CLAUDE_SKILL_DIR}/scripts/update-opencli.sh
 bash ${CLAUDE_SKILL_DIR}/scripts/update-agent-reach.sh
 ```
 
-> pipx 全量已跑过，此处的 `pipx upgrade agent-reach` 通常为 no-op。
+> **注意 `pipx upgrade` 不是 no-op**：实测即使已是最新也要 7.6 秒（每次都重新解析 spec 并重拉 GitHub zip）。全量流程中 `pipx upgrade-all`（步骤 5）已覆盖同一包，此处可跳过 pipx 部分，只跑 `agent-reach update --sync-only`；单组件模式下才需要 `pipx upgrade`。
+> skill 由 `agent-reach update --sync-only` 刷新（走上游 `manage.sync()` → `place_skill()`）：它会渲染 `{{VERSION}}` 与 `{{CHANNEL_TABLE}}` 并为各 agent 建链接。**不要**手工 `git clone` + `cp` 上游 `agent_reach/skill`——拿到的是未渲染模板，版本号会是字面量 `"{{VERSION}}"`。
+> 不加 `--sync-only` 的 `agent-reach update` 会走 `manage.update()`，本机 `install_method` 为 `other` 时会触发 pipx→uv 迁移，属计划外变更。
 
 #### notebooklm
 
@@ -134,7 +137,7 @@ bash ${CLAUDE_SKILL_DIR}/scripts/update-agent-reach.sh
 bash ${CLAUDE_SKILL_DIR}/scripts/update-notebooklm.sh
 ```
 
-> 同上，`pipx upgrade notebooklm-py` 通常为 no-op。
+> 同上，`pipx upgrade notebooklm-py` 不是 no-op（实测已最新也要 1.7-9.6 秒）。全量流程中可跳过 pipx 部分，只跑 `notebooklm skill install`。
 
 #### npx skills 管理的技能
 
@@ -142,12 +145,12 @@ bash ${CLAUDE_SKILL_DIR}/scripts/update-notebooklm.sh
 bash ${CLAUDE_SKILL_DIR}/scripts/update-agent-skills.sh
 ```
 
-> 管理 `~/.agents/skills` 下由 `npx skills` 安装的技能（清单见 `~/.agents/.skill-lock.json`），来源包括 `mattpocock/skills`、`affaan-m/ECC`、`github/awesome-copilot` 等。
-> **必须在 opencli 之后跑**：`opencli-*` 与 `smart-search` 同时归 opencli 脚本和 npx skills 管，两处都会覆盖同一批目录，以 npx 的上游版本收尾。
+> 管理 `~/.agents/skills` 下由 `npx skills` 安装的技能（清单见 `~/.agents/.skill-lock.json`），来源包括 `jackwener/opencli`、`mattpocock/skills`、`affaan-m/ECC`、`github/awesome-copilot` 等。
+> **它是 `opencli-*` 与 `smart-search` 的唯一所有者**：`update-opencli.sh` 已不再同步 skill，只更新 CLI。
 > 脚本显式传 `-g`：当前目录是 `$HOME` 时，`~/.agents/skills` 会被 npx 的 `hasProjectSkills()` 误判成 project skills。
 > 只处理 lock 中登记过的技能；`~/.agents/skills` 里的手写技能（agent-reach、notebooklm、orca-*、orchestration）不在 lock 中，不会被触碰。
 > 脚本用 `npx -y skills@latest`，不依赖全局安装；`~/.agents/.skill-lock.json` 不存在时直接跳过（退出 0），不中断全量流程。
-> **并发失败自动串行重试**：npx skills 会同时 clone 全部来源，代理不稳时部分仓库报 `gnutls_handshake() failed`。脚本解析输出里的 `✗ Failed to update <名>`，对这些技能逐个串行重试（单仓库 clone 稳定）。重试仍失败才返回非 0。`Cannot update`（lock 缺 sourceUrl）与 `Failed to check skills from`（整源不可达）不参与重试。
+> **并发从源头限制**：上游默认 4 路并发 clone（`DEFAULT_FETCH_CONCURRENCY`），走代理时并发握手易被掐断，报 `gnutls_handshake() failed`。脚本设 `SKILLS_CLONE_CONCURRENCY=2`（上游 `fetchConcurrency()` 读取，未写入 `--help`）；首轮失败时降为单路整轮重跑一次。update 是幂等的，已最新的技能会被跳过，无需解析输出定位具体哪一项。
 
 #### 散装二进制检查
 
@@ -273,8 +276,7 @@ bash ${CLAUDE_SKILL_DIR}/scripts/snapshot.sh after
 |------|-------------|--------|
 | 已启用插件列表 | `~/.claude/settings.json` → `enabledPlugins` | — |
 | 插件安装信息 | `~/.claude/plugins/installed_plugins.json` | — |
-| opencli skills（生态） | `~/.agents/skills/`（通用 agent skills 目录，opencli 生态占其中一部分）+ `~/.claude/skills/` (symlinks) | `jackwener/opencli` |
-| npx skills 管理的技能 | `~/.agents/skills/`（清单：`~/.agents/.skill-lock.json`） | `mattpocock/skills`、`affaan-m/ECC`、`github/awesome-copilot` 等 |
+| npx skills 管理的技能 | `~/.agents/skills/`（清单：`~/.agents/.skill-lock.json`） | `jackwener/opencli`、`mattpocock/skills`、`affaan-m/ECC`、`github/awesome-copilot` 等 |
 | agent-reach skill | `~/.agents/skills/agent-reach/`（权威）；`~/.claude/skills/agent-reach` 为符号链接 | `Panniantong/Agent-Reach` → `agent_reach/skill/` |
 | opencli CLI | 全局 npm | `@jackwener/opencli` |
 | opencode CLI | `~/.opencode/bin/opencode` | `opencode upgrade --method curl` |
