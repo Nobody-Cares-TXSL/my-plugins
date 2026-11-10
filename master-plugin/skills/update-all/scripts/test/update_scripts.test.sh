@@ -135,6 +135,32 @@ test_zip_sudo() {
   fi
 }
 
+# ---------- 5. npx skills 更新脚本 ----------
+
+# 无 lock 文件时应静默跳过（退出 0），不能报错中断全量流程
+test_agent_skills_no_lock() {
+  local name="update-agent-skills.sh 无 lock 时跳过"
+  local home="$TMP_ROOT/home5"
+  mkdir -p "$home"
+  local out rc=0
+  out=$(HOME="$home" bash "$SCRIPTS_DIR/update-agent-skills.sh" 2>&1) || rc=$?
+  if [ "$rc" -eq 0 ] && echo "$out" | grep -q '未安装'; then
+    ok "$name"
+  else
+    bad "$name" "退出码 $rc，输出: $out"
+  fi
+}
+
+# 必须显式 -g：否则 cwd=$HOME 时 ~/.agents/skills 会被判成 project skills
+test_agent_skills_uses_global_flag() {
+  local name="update-agent-skills.sh 传 -g"
+  if grep -q 'skills@latest update -g' "$SCRIPTS_DIR/update-agent-skills.sh"; then
+    ok "$name"
+  else
+    bad "$name" "未找到 'skills@latest update -g'"
+  fi
+}
+
 echo "--- update-all 脚本测试 ---"
 test_enabled_filter
 test_script_uses_bool
@@ -142,6 +168,8 @@ test_snapshot_uses_bool
 test_download_keeps_existing
 test_discover_is_readonly
 test_zip_sudo
+test_agent_skills_no_lock
+test_agent_skills_uses_global_flag
 
 echo ""
 echo "$pass passed, $fail failed"

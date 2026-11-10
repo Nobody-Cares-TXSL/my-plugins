@@ -1,7 +1,7 @@
 ---
 name: update-all
-description: 一键更新所有已启用 Claude Code 插件、npm/pipx/uv tool 包、opencli、agent-reach、notebooklm、opencode 并同步 Obsidian 文档；也可传组件名只更新单个组件
-argument-hint: [plugins|opencode|opencli|agent-reach|notebooklm|npm|pipx|uv]
+description: 一键更新所有已启用 Claude Code 插件、npm/pipx/uv tool 包、opencli、agent-reach、notebooklm、npx skills 管理的 agent skills、opencode 并同步 Obsidian 文档；也可传组件名只更新单个组件
+argument-hint: [plugins|opencode|opencli|agent-reach|notebooklm|skills|npm|pipx|uv]
 allowed-tools: Bash Read Edit Write
 ---
 
@@ -24,6 +24,7 @@ allowed-tools: Bash Read Edit Write
 | `opencli` | `update-opencli.sh` | opencli CLI + skills 生态 |
 | `agent-reach` | `update-agent-reach.sh` | agent-reach CLI + skill |
 | `notebooklm` | `update-notebooklm.sh` | notebooklm CLI + skill |
+| `skills` | `update-agent-skills.sh` | `npx skills` 管理的 `~/.agents/skills` 技能 |
 | `npm` | `update-npm.sh` | npm 全局包 |
 | `pipx` | `update-pipx.sh` | pipx 安装的 CLI |
 | `uv` | `uv tool upgrade --all` | uv tool 安装的 CLI（harlequin、laya、paper-search-mcp 等） |
@@ -33,7 +34,7 @@ allowed-tools: Bash Read Edit Write
 
 ### 任务追踪
 
-开始前，若当前环境注册了 `TaskCreate`/`TaskUpdate`，就创建以下 12 个任务并逐步更新为 in_progress → completed；未注册则顺序执行，每步结束向用户简报进度。两种方式结果等价，不要因缺工具跳过步骤：
+开始前，若当前环境注册了 `TaskCreate`/`TaskUpdate`，就创建以下 13 个任务并逐步更新为 in_progress → completed；未注册则顺序执行，每步结束向用户简报进度。两种方式结果等价，不要因缺工具跳过步骤：
 
 1. **版本快照（更新前）** — snapshot.sh before，保存 UPDATE_BEFORE
 2. **Claude Code 插件** — update-plugins.sh
@@ -44,9 +45,10 @@ allowed-tools: Bash Read Edit Write
 7. **opencli** — update-opencli.sh（含 nvm 加载；npm 全量已跑过，此处为 no-op）
 8. **agent-reach** — update-agent-reach.sh（pipx 全量已跑过，此处为 no-op）
 9. **notebooklm** — update-notebooklm.sh（同上）
-10. **散装二进制检查** — check-hard-updates.sh（只读扫描 + 查最新版 + AskUserQuestion 让用户选 + 下载到 ~/下载，**由用户手动安装**）
-11. **版本快照（更新后）+ 对比** — snapshot.sh after，输出变更摘要
-12. **更新 Obsidian 文档** — README.md
+10. **npx skills 管理的技能** — update-agent-skills.sh（`~/.agents/skills`，与 opencli 生态有交集，放最后跑以覆盖上游最新）
+11. **散装二进制检查** — check-hard-updates.sh（只读扫描 + 查最新版 + AskUserQuestion 让用户选 + 下载到 ~/下载，**由用户手动安装**）
+12. **版本快照（更新后）+ 对比** — snapshot.sh after，输出变更摘要
+13. **更新 Obsidian 文档** — README.md
 
 完成后输出 reload 提示。
 
@@ -58,6 +60,7 @@ allowed-tools: Bash Read Edit Write
 - `update-opencli.sh` — opencli CLI + skills
 - `update-agent-reach.sh` — agent-reach CLI + skill
 - `update-notebooklm.sh` — notebooklm CLI + skill
+- `update-agent-skills.sh` — `npx skills` 管理的 `~/.agents/skills` 技能
 - `update-npm.sh` — npm 全局包
 - `update-pipx.sh` — pipx 安装的 CLI
 - （uv tool 无独立脚本，直接 `uv tool upgrade --all`）
@@ -132,6 +135,18 @@ bash ${CLAUDE_SKILL_DIR}/scripts/update-notebooklm.sh
 ```
 
 > 同上，`pipx upgrade notebooklm-py` 通常为 no-op。
+
+#### npx skills 管理的技能
+
+```bash
+bash ${CLAUDE_SKILL_DIR}/scripts/update-agent-skills.sh
+```
+
+> 管理 `~/.agents/skills` 下由 `npx skills` 安装的技能（清单见 `~/.agents/.skill-lock.json`），来源包括 `mattpocock/skills`、`affaan-m/ECC`、`github/awesome-copilot` 等。
+> **必须在 opencli 之后跑**：`opencli-*` 与 `smart-search` 同时归 opencli 脚本和 npx skills 管，两处都会覆盖同一批目录，以 npx 的上游版本收尾。
+> 脚本显式传 `-g`：当前目录是 `$HOME` 时，`~/.agents/skills` 会被 npx 的 `hasProjectSkills()` 误判成 project skills。
+> 只处理 lock 中登记过的技能；`~/.agents/skills` 里的手写技能（agent-reach、notebooklm、orca-*、orchestration）不在 lock 中，不会被触碰。
+> 脚本用 `npx -y skills@latest`，不依赖全局安装；`~/.agents/.skill-lock.json` 不存在时直接跳过（退出 0），不中断全量流程。
 
 #### 散装二进制检查
 
@@ -258,6 +273,7 @@ bash ${CLAUDE_SKILL_DIR}/scripts/snapshot.sh after
 | 已启用插件列表 | `~/.claude/settings.json` → `enabledPlugins` | — |
 | 插件安装信息 | `~/.claude/plugins/installed_plugins.json` | — |
 | opencli skills（生态） | `~/.agents/skills/`（通用 agent skills 目录，opencli 生态占其中一部分）+ `~/.claude/skills/` (symlinks) | `jackwener/opencli` |
+| npx skills 管理的技能 | `~/.agents/skills/`（清单：`~/.agents/.skill-lock.json`） | `mattpocock/skills`、`affaan-m/ECC`、`github/awesome-copilot` 等 |
 | agent-reach skill | `~/.agents/skills/agent-reach/`（权威）；`~/.claude/skills/agent-reach` 为符号链接 | `Panniantong/Agent-Reach` → `agent_reach/skill/` |
 | opencli CLI | 全局 npm | `@jackwener/opencli` |
 | opencode CLI | `~/.opencode/bin/opencode` | `opencode upgrade --method curl` |
