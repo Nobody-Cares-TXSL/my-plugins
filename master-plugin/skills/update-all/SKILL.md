@@ -147,6 +147,7 @@ bash ${CLAUDE_SKILL_DIR}/scripts/update-agent-skills.sh
 > 脚本显式传 `-g`：当前目录是 `$HOME` 时，`~/.agents/skills` 会被 npx 的 `hasProjectSkills()` 误判成 project skills。
 > 只处理 lock 中登记过的技能；`~/.agents/skills` 里的手写技能（agent-reach、notebooklm、orca-*、orchestration）不在 lock 中，不会被触碰。
 > 脚本用 `npx -y skills@latest`，不依赖全局安装；`~/.agents/.skill-lock.json` 不存在时直接跳过（退出 0），不中断全量流程。
+> **并发失败自动串行重试**：npx skills 会同时 clone 全部来源，代理不稳时部分仓库报 `gnutls_handshake() failed`。脚本解析输出里的 `✗ Failed to update <名>`，对这些技能逐个串行重试（单仓库 clone 稳定）。重试仍失败才返回非 0。`Cannot update`（lock 缺 sourceUrl）与 `Failed to check skills from`（整源不可达）不参与重试。
 
 #### 散装二进制检查
 
