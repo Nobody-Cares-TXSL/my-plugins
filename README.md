@@ -32,6 +32,7 @@
         │   └── scripts/*.sh            #     各组件更新脚本
         ├── auto-answer/SKILL.md        #   基于 opencli browser 的自动答题
         │   └── scripts/                 #     aa.sh 单入口 + js/*.js 浏览器脚本
+        │       └── test/*.test.mjs      #     题目计数/标号匹配/verify 字段回归测试
         ├── write-docx/SKILL.md         #   docx.js 中文 Word 生成最佳实践
         │   └── references/              #     字体/行距/表格/图片/公式/封面等专题
         ├── update-my-plugins/SKILL.md  #   优化技能 → 同步文档 → 提交推送 → 更新本地
@@ -61,7 +62,7 @@
 | `push` | skill | 按约定式提交规范创建提交并推送，兼容 Claude Code CLI 和 Codex |
 | `deep-read` | skill | 智能阅读助手，压缩文本的同时辅助理解 |
 | `update-all` | skill | 一键更新所有 Claude Code 插件、npm/pipx/uv tool 包、opencli、agent-reach、notebooklm、npx skills 管理的 agent skills、opencode 并同步 Obsidian 文档；开发工具链（npm/pnpm/corepack）锁定大版本；散装二进制按 `~/.cargo/.crates.toml` 区分 crates.io 与本地 `--path` 来源，避免降级；传组件名可只更新单个组件 |
-| `auto-answer` | skill | 基于 opencli browser 的自动答题，绑定浏览器标签页读取题目并一次性作答 |
+| `auto-answer` | skill | 基于 opencli browser 的自动答题，绑定标签页读取题目并作答；兼容旧版雨课堂与新考试系统（SPA 渲染守卫、exam-trans 路由进入、标号与 input.value 错位处理） |
 | `write-docx` | skill | docx.js 生成中文 Word 文档的最佳实践，含字体、行距、表格、图片、公式、页眉页脚等格式指南与踩坑速查 |
 | `update-my-plugins` | skill | 优化 my-plugins 中的技能，同步仓库文档，推送更新到 GitHub，然后更新本地插件，兼容 Claude Code CLI 和 Codex |
 | `distill-session` | skill | 复盘当前会话中调用插件的摩擦，归类为插件/模型/环境问题，生成插件优化清单并逐条确认修复，兼容 Claude Code CLI 和 Codex |

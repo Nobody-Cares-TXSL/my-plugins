@@ -26,6 +26,8 @@ window.__aa = (() => {
   };
 
   // 真正的题目项：有 h4，或有填空输入框（排除导航面板等）
+  // 注意别把 .exercise-item 也加进来：新考试系统是 .subject-item 包裹 .exercise-item，
+  // 两个选择器合并会让每题计两次（实测 30 题变 60）。
   const items = root => Array.from(root.querySelectorAll('.subject-item')).filter(it =>
     it.querySelector('h4') || it.querySelector('input[placeholder=输入答案]'));
 

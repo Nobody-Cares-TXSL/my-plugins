@@ -10,9 +10,13 @@
       const inp = l.querySelector('input');
       return !!inp && inp.checked;
     };
+    // letter 是可见标号（用户看到的 A/B/C/D），rawValue 是 input.value。
+    // 雨课堂系平台二者错位，读 value 会误判选了哪一项，故以可见标号为主字段。
     const checked = labels.filter(isChecked).map(l => {
       const inp = l.querySelector('input');
-      return { value: inp ? inp.value : '', label: AA.visText(l).slice(0, 40) };
+      const vis = AA.visText(l);
+      const m = vis.match(/^([A-Za-z])(?=$|[\s.、,，:：（(])/);
+      return { letter: m ? m[1] : '', label: vis.slice(0, 40), rawValue: inp ? inp.value : '' };
     });
     const fills = Array.from(item.querySelectorAll('input[placeholder=输入答案]')).map(x => x.value);
     const type = AA.qType(item);

@@ -41,6 +41,10 @@ case "$cmd" in
 
   read-questions)
     aa_ensure_bound "$SESSION"
+    # SPA 路由切换后题目异步渲染，节点可能晚于 eval 到达。
+    # 不等待会返回 total:0，容易被误读成"结构不匹配/已交卷"，这里最多轮询 15s。
+    # || true：超时不该中断流程——让读取本身去报 total:0，比在这里静默退出可诊断。
+    aa_wait_items "$SESSION" 15 || true
     aa_eval "$SESSION" "$(build_js "$SCRIPT_DIR/js/read_questions.js")"
     ;;
 

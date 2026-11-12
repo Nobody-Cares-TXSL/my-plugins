@@ -58,6 +58,33 @@ aa_ensure_bound() {
   esac
 }
 
+# aa_wait_items <会话名> <秒数> —— 轮询等待题目节点渲染完成
+# 新考试系统是 SPA，路由切换后题目异步挂载；早于挂载执行读取会拿到 0 题。
+# 返回 0 表示等到了，1 表示超时（调用方仍继续执行，由读取结果自行说明问题）。
+# 探测用裸 querySelectorAll：此处不拼 _common.js，拿不到 window.__aa。
+aa_wait_items() {
+  local session="$1" limit="${2:-15}" i=0 n
+  # 优先数外层 .subject-item；只有 .exercise-item 的页面（无外层包裹）也能命中，
+  # 用 || 兜底而不是相加——两者嵌套时相加会翻倍。
+  local probe="(document.querySelectorAll('.subject-item').length || document.querySelectorAll('.exercise-item').length)"
+  while [ "$i" -lt "$limit" ]; do
+    if [ -n "${AA_TAB:-}" ]; then
+      n="$(timeout 15 opencli browser --session "$session" eval --tab "$AA_TAB" "$probe" 2>/dev/null || true)"
+    else
+      n="$(timeout 15 opencli browser --session "$session" eval "$probe" 2>/dev/null || true)"
+    fi
+    n="$(printf '%s' "$n" | python3 -c 'import json,sys
+try:
+    print(json.load(sys.stdin).get("data",0) or 0)
+except Exception:
+    print(0)' 2>/dev/null || echo 0)"
+    [ "${n:-0}" -gt 0 ] 2>/dev/null && return 0
+    i=$((i + 1))
+    sleep 1
+  done
+  return 1
+}
+
 # aa_upload_file <会话名> <本地文件> —— 把文件注入页面 file input（支持同源 iframe）
 # 大文件按块注入 base64，绕过 argv 长度上限；页面侧由 js/upload_file.js 组装
 aa_upload_file() {
