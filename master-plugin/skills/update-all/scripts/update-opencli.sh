@@ -13,6 +13,12 @@ export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
 export http_proxy=http://127.0.0.1:7890
 export https_proxy=http://127.0.0.1:7890
 
+# npm 11 起 install scripts 默认被沙箱拦截；opencli 的 postinstall 负责下载 adapters
+npm_major=$(npm --version 2>/dev/null | cut -d. -f1)
+case "$npm_major" in
+  ''|*[!0-9]*) npm_major=0 ;;
+esac
+
 # 更新 CLI
 echo "--- Updating opencli CLI ---"
 # 单包 npm update 同样重算依赖树，先查再装
@@ -20,7 +26,11 @@ echo "--- Updating opencli CLI ---"
 rc=0
 outdated=$(npm outdated -g @jackwener/opencli 2>/dev/null) || rc=$?
 if [ -n "$outdated" ]; then
-  npm update -g @jackwener/opencli 2>&1
+  if [ "$npm_major" -ge 11 ]; then
+    npm update -g @jackwener/opencli --allow-scripts=@jackwener/opencli 2>&1
+  else
+    npm update -g @jackwener/opencli 2>&1
+  fi
 elif [ "$rc" -eq 0 ]; then
   echo "  ✅ 已是最新"
 else

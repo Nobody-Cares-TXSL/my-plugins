@@ -56,6 +56,8 @@ claude plugin update master-plugin
 | agent-reach skill | `~/.agents/skills/agent-reach/`（权威）；`~/.claude/skills/agent-reach` 为符号链接 | pipx upgrade + skill 同步 |
 | notebooklm | pipx venv + `~/.claude/skills/notebooklm/` | pipx upgrade + skill install |
 | opencode CLI | `~/.opencode/bin/opencode` | `opencode upgrade --method curl` |
+| omp CLI | `~/.bun/bin/omp`（bun 全局 `@oh-my-pi/pi-coding-agent`） | `omp update` |
+| pi CLI | `~/.pi/agent/bin/pi`（`~/.local/bin/pi` 为符号链接） | `pi update` |
 | npm 全局包 | `~/.nvm/versions/node/*/lib/node_modules` | `npm update -g`（npm/pnpm/corepack 锁定大版本） |
 | pipx 包 | `~/.local/share/pipx/venvs` | `pipx upgrade-all` |
 | uv tool 包 | `~/.local/share/uv/tools/`（命令软链在 `~/.local/bin/`） | `uv tool upgrade --all` |

@@ -184,6 +184,81 @@ test_agent_skills_reruns_on_failure() {
   fi
 }
 
+# ---------- 6. omp/pi 组件接入 ----------
+
+test_omp_pi_wired() {
+  local name="omp/pi 接入脚本与快照"
+  if grep -q 'omp update' "$SCRIPTS_DIR/update-omp.sh" 2>/dev/null \
+     && grep -q 'pi update' "$SCRIPTS_DIR/update-pi.sh" 2>/dev/null \
+     && grep -q 'for c in omp pi' "$SCRIPTS_DIR/snapshot.sh"; then
+    ok "$name"
+  else
+    bad "$name"
+  fi
+}
+
+# ---------- 7. npm 11 allow-scripts ----------
+
+test_npm_allow_scripts() {
+  local name="update-npm.sh 适配 npm 11 allow-scripts"
+  if grep -q 'allow-scripts=' "$SCRIPTS_DIR/update-npm.sh" \
+     && grep -q 'NPM_ALLOW\[@\]' "$SCRIPTS_DIR/update-npm.sh"; then
+    ok "$name"
+  else
+    bad "$name" "未找到 allow-scripts / npm_major"
+  fi
+}
+
+# ---------- 8. 下载后冒烟测试 ----------
+
+test_download_verify() {
+  local name="check-hard-updates.sh 下载后验证"
+  if grep -q '^verify_download()' "$SCRIPTS_DIR/check-hard-updates.sh" \
+     && grep -q 'verify_download "\$dest"' "$SCRIPTS_DIR/check-hard-updates.sh"; then
+    ok "$name"
+  else
+    bad "$name" "verify_download 未定义或 download_url 未调用"
+  fi
+}
+
+# ---------- 9. 下载后冒烟测试行为（非字符串断言） ----------
+
+# 直下二进制由 curl 落盘为 0644；脚本必须补执行位后才能跑 --version。
+# 用一个返回 "1.2.3" 的可执行脚本冒充二进制，驱动 verify_download 的完整路径。
+test_download_verify_behavior() {
+  local name="直下二进制冒烟测试（补执行位）"
+  local home="$TMP_ROOT/home6"
+  mkdir -p "$home"
+  local port
+  port=$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1",0)); print(s.getsockname()[1]); s.close()')
+  timeout 30 python3 - "$port" <<'PY3' &
+import http.server, socketserver, sys
+BODY = b"#!/bin/sh\necho 1.2.3\n# " + b"x" * 1200 + b"\n"
+class H(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header("Content-Length", str(len(BODY)))
+        self.end_headers()
+        self.wfile.write(BODY)
+    def log_message(self, *a): pass
+socketserver.TCPServer.allow_reuse_address = True
+with socketserver.TCPServer(("127.0.0.1", int(sys.argv[1])), H) as s:
+    s.serve_forever()
+PY3
+  local srv=$!
+  sleep 1
+  local out
+  out=$(HOME="$home" no_proxy="127.0.0.1,localhost" NO_PROXY="127.0.0.1,localhost" \
+    timeout 30 bash "$SCRIPTS_DIR/check-hard-updates.sh" --download "http://127.0.0.1:$port/prog" "$home/bin/prog" 2>&1 || true)
+  kill "$srv" 2>/dev/null || true
+  wait "$srv" 2>/dev/null || true
+  if echo "$out" | grep -q '可运行性: ✓ 1.2.3'; then
+    ok "$name"
+  else
+    bad "$name" "输出: $out"
+  fi
+}
+
 echo "--- update-all 脚本测试 ---"
 test_enabled_filter
 test_script_uses_bool
@@ -195,6 +270,10 @@ test_agent_skills_no_lock
 test_agent_skills_uses_global_flag
 test_agent_skills_limits_concurrency
 test_agent_skills_reruns_on_failure
+test_omp_pi_wired
+test_npm_allow_scripts
+test_download_verify
+test_download_verify_behavior
 
 echo ""
 echo "$pass passed, $fail failed"

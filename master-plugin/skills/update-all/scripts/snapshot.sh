@@ -5,6 +5,8 @@ set -euo pipefail
 
 export NVM_DIR="${NVM_DIR:-$HOME/.nvm}"
 [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"
+# bun 全局包（omp）与 ~/.local/bin（pi）不在 nvm 路径下，补进 PATH 供采集
+export PATH="$HOME/.bun/bin:$HOME/.local/bin:$PATH"
 
 LABEL="${1:-snapshot}"
 SETTINGS="$HOME/.claude/settings.json"
@@ -75,6 +77,17 @@ else
   echo "  not installed"
 fi
 echo ""
+
+# omp（bun 全局）与 pi（独立二进制）
+for c in omp pi; do
+  echo "--- $c ---"
+  if command -v "$c" &>/dev/null; then
+    echo "  CLI: $("$c" --version 2>&1 | head -1)"
+  else
+    echo "  not installed"
+  fi
+  echo ""
+done
 
 # opencli CLI + 站点/命令统计
 echo "--- opencli CLI ---"

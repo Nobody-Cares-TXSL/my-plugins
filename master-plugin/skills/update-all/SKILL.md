@@ -1,7 +1,7 @@
 ---
 name: update-all
-description: 一键更新所有已启用 Claude Code 插件、npm/pipx/uv tool 包、opencli、agent-reach、notebooklm、npx skills 管理的 agent skills、opencode 并同步 Obsidian 文档；也可传组件名只更新单个组件
-argument-hint: [plugins|opencode|opencli|agent-reach|notebooklm|skills|npm|pipx|uv]
+description: 一键更新所有已启用 Claude Code 插件、npm/pipx/uv tool 包、opencli、agent-reach、notebooklm、npx skills 管理的 agent skills、opencode、omp、pi 并同步 Obsidian 文档；也可传组件名只更新单个组件
+argument-hint: [plugins|opencode|omp|pi|opencli|agent-reach|notebooklm|skills|npm|pipx|uv]
 allowed-tools: Bash Read Edit Write
 ---
 
@@ -21,6 +21,8 @@ allowed-tools: Bash Read Edit Write
 |--------|------|---------|
 | `plugins` | `update-plugins.sh` | 已启用 Claude Code 插件 |
 | `opencode` | `update-opencode.sh` | opencode CLI 二进制 |
+| `omp` | `update-omp.sh` | omp（`@oh-my-pi/pi-coding-agent`，bun 全局，自更新） |
+| `pi` | `update-pi.sh` | pi coding agent（自更新） |
 | `opencli` | `update-opencli.sh` | opencli CLI（skill 归 `skills` 组件） |
 | `agent-reach` | `update-agent-reach.sh` | agent-reach CLI + skill |
 | `notebooklm` | `update-notebooklm.sh` | notebooklm CLI + skill |
@@ -34,21 +36,23 @@ allowed-tools: Bash Read Edit Write
 
 ### 任务追踪
 
-开始前，若当前环境注册了 `TaskCreate`/`TaskUpdate`，就创建以下 13 个任务并逐步更新为 in_progress → completed；未注册则顺序执行，每步结束向用户简报进度。两种方式结果等价，不要因缺工具跳过步骤：
+开始前，若当前环境注册了 `TaskCreate`/`TaskUpdate`，就创建以下 15 个任务并逐步更新为 in_progress → completed；未注册则顺序执行，每步结束向用户简报进度。两种方式结果等价，不要因缺工具跳过步骤：
 
 1. **版本快照（更新前）** — snapshot.sh before，保存 UPDATE_BEFORE
 2. **Claude Code 插件** — update-plugins.sh
 3. **opencode CLI** — update-opencode.sh（curl 二进制更新）
-4. **npm 全局包** — update-npm.sh（须在 opencli 之前）
-5. **pipx 包** — update-pipx.sh（须在 agent-reach/notebooklm 之前）
-6. **uv tool 包** — `uv tool upgrade --all`（与 pipx 并列的独立渠道，互不覆盖）
-7. **opencli** — update-opencli.sh（含 nvm 加载；npm 全量已跑过，此处为 no-op）
-8. **agent-reach** — update-agent-reach.sh（pipx 已由步骤 5 覆盖；此处重点是 `update --sync-only` 刷新 skill）
-9. **notebooklm** — update-notebooklm.sh（同上，重点是 `notebooklm skill install`）
-10. **npx skills 管理的技能** — update-agent-skills.sh（`~/.agents/skills`，含 opencli-* 与 smart-search，是这些 skill 的唯一所有者）
-11. **散装二进制检查** — check-hard-updates.sh（只读扫描 + 查最新版 + AskUserQuestion 让用户选 + 下载到 ~/下载，**由用户手动安装**）
-12. **版本快照（更新后）+ 对比** — snapshot.sh after，输出变更摘要
-13. **更新 Obsidian 文档** — README.md
+4. **omp** — update-omp.sh（bun 全局包，`omp update`）
+5. **pi** — update-pi.sh（`pi update`，自更新；与 omp 互不依赖，可并行）
+6. **npm 全局包** — update-npm.sh（须在 opencli 之前）
+7. **pipx 包** — update-pipx.sh（须在 agent-reach/notebooklm 之前）
+8. **uv tool 包** — `uv tool upgrade --all`（与 pipx 并列的独立渠道，互不覆盖）
+9. **opencli** — update-opencli.sh（含 nvm 加载；npm 全量已跑过，此处为 no-op）
+10. **agent-reach** — update-agent-reach.sh（pipx 已由步骤 7 覆盖；此处重点是 `update --sync-only` 刷新 skill）
+11. **notebooklm** — update-notebooklm.sh（同上，重点是 `notebooklm skill install`）
+12. **npx skills 管理的技能** — update-agent-skills.sh（`~/.agents/skills`，含 opencli-* 与 smart-search，是这些 skill 的唯一所有者）
+13. **散装二进制检查** — check-hard-updates.sh（只读扫描 + 查最新版 + AskUserQuestion 让用户选 + 下载到 ~/下载，**由用户手动安装**）
+14. **版本快照（更新后）+ 对比** — snapshot.sh after，输出变更摘要
+15. **更新 Obsidian 文档** — README.md
 
 完成后输出 reload 提示。
 
@@ -65,7 +69,15 @@ allowed-tools: Bash Read Edit Write
 - `update-pipx.sh` — pipx 安装的 CLI
 - （uv tool 无独立脚本，直接 `uv tool upgrade --all`）
 - `update-opencode.sh` — opencode CLI 二进制更新
+- `update-omp.sh` — omp（bun 全局包 `@oh-my-pi/pi-coding-agent`）
+- `update-pi.sh` — pi coding agent
 - `check-hard-updates.sh` — 发现散装二进制（apt/npm/pipx 管不到的），只读检查 + 通用下载器；**不自动安装**
+
+### 环境注意事项（Claude Code Bash tool）
+
+- **nvm 管理的命令必须用 `env` 调用**：`~/.zshrc` 把 node/npm/npx/mcporter/xreach/codex/codebuddy/agent-reach/opencli 包成懒加载函数；Bash tool 的 shell 快照里函数定义残缺，直接调用会报 `command not found: _nvm_lazy_run`。用 `env <cmd>` 直接 exec PATH 中的二进制即可。
+- 若 PATH 中没有 nvm 的 node，先补 `export PATH="$(ls -d "$HOME"/.nvm/versions/node/*/bin | sort -V | tail -1):$PATH"`，再用 `env <cmd>`。
+- 脚本内部是 bash，不加载 zsh 函数，不受此影响；此规则只针对 Bash tool 里直接手敲的命令（尤其是下方「文档更新」里的版本检测命令）。
 
 ### 执行命令
 
@@ -87,6 +99,22 @@ bash ${CLAUDE_SKILL_DIR}/scripts/update-plugins.sh
 ```bash
 bash ${CLAUDE_SKILL_DIR}/scripts/update-opencode.sh
 ```
+
+#### omp
+
+```bash
+bash ${CLAUDE_SKILL_DIR}/scripts/update-omp.sh
+```
+
+> omp 由 bun 全局安装（`@oh-my-pi/pi-coding-agent`），走自带 `omp update`；`--check` 只查不装。脚本已把 `~/.bun/bin` 补进 PATH。
+
+#### pi
+
+```bash
+bash ${CLAUDE_SKILL_DIR}/scripts/update-pi.sh
+```
+
+> `pi update` 默认只更新 pi 自身；`--all` 会连带更新已装扩展。本技能只做 self 更新，避免计划外改动扩展。
 
 #### npm 全局包
 
@@ -127,7 +155,7 @@ bash ${CLAUDE_SKILL_DIR}/scripts/update-opencli.sh
 bash ${CLAUDE_SKILL_DIR}/scripts/update-agent-reach.sh
 ```
 
-> **注意 `pipx upgrade` 不是 no-op**：实测即使已是最新也要 7.6 秒（每次都重新解析 spec 并重拉 GitHub zip）。全量流程中 `pipx upgrade-all`（步骤 5）已覆盖同一包，此处可跳过 pipx 部分，只跑 `agent-reach update --sync-only`；单组件模式下才需要 `pipx upgrade`。
+> **注意 `pipx upgrade` 不是 no-op**：实测即使已是最新也要 7.6 秒（每次都重新解析 spec 并重拉 GitHub zip）。全量流程中 `pipx upgrade-all`（步骤 7）已覆盖同一包，此处可跳过 pipx 部分，只跑 `agent-reach update --sync-only`；单组件模式下才需要 `pipx upgrade`。
 > skill 由 `agent-reach update --sync-only` 刷新（走上游 `manage.sync()` → `place_skill()`）：它会渲染 `{{VERSION}}` 与 `{{CHANNEL_TABLE}}` 并为各 agent 建链接。**不要**手工 `git clone` + `cp` 上游 `agent_reach/skill`——拿到的是未渲染模板，版本号会是字面量 `"{{VERSION}}"`。
 > 不加 `--sync-only` 的 `agent-reach update` 会走 `manage.update()`，本机 `install_method` 为 `other` 时会触发 pipx→uv 迁移，属计划外变更。
 
@@ -165,6 +193,7 @@ bash ${CLAUDE_SKILL_DIR}/scripts/check-hard-updates.sh --download <url>
 ```
 
 > **不自动安装**——下载到 `~/下载` 后由用户手动执行安装命令（多数需 sudo）。
+> 下载完成后脚本会以当前用户身份执行一次 `--version` 做冒烟测试（不安装、不 sudo；仅对可信来源的 release 使用）。若提示「无法运行」，多为 glibc/ABI 不兼容（实测 resvg 0.50.0 需 GLIBC_2.43，本机 2.39），改用源码编译：`cargo install <包名> --locked --version <版本>`。
 
 #### 版本快照（更新后）
 
@@ -187,9 +216,9 @@ bash ${CLAUDE_SKILL_DIR}/scripts/snapshot.sh after
 - **插件表**: 各插件的技能列表
 
 版本检测命令：
-- opencli 站点数: `opencli --help 2>&1 | grep -oE 'Site adapters \([0-9]+\)'`（v2.0+ 起；1.x 无此行，退回 `opencli list | grep "built-in commands"`）
-- opencli 命令数: `opencli list --limit 1 -f json 2>&1 | grep -oE '"total":[0-9]+'`（取 `total` 字段；勿数数组长度——`list` 默认只返回 25 条）
-- agent-reach 通道数: `agent-reach doctor 2>&1 | grep -oE '"status": *"[^"]+"' | sort | uniq -c`（默认输出 JSON；`--text` 为人类可读表，无"状态："字段）
+- opencli 站点数: `env opencli --help 2>&1 | grep -oE 'Site adapters \([0-9]+\)'`（v2.0+ 起；1.x 无此行，退回 `opencli list | grep "built-in commands"`）
+- opencli 命令数: `env opencli list --limit 1 -f json 2>&1 | grep -oE '"total":[0-9]+'`（取 `total` 字段；勿数数组长度——`list` 默认只返回 25 条）
+- agent-reach 通道数: `env agent-reach doctor 2>&1 | grep -oE '"status": *"[^"]+"' | sort | uniq -c`（默认输出 JSON；`--text` 为人类可读表，无"状态："字段）
 - 注意：本文档无独立"最后更新"字段，版本信息内嵌在标题（如 `#### opencli v2.0.2`）与表格中
 
 #### 文档原则
@@ -280,6 +309,8 @@ bash ${CLAUDE_SKILL_DIR}/scripts/snapshot.sh after
 | agent-reach skill | `~/.agents/skills/agent-reach/`（权威）；`~/.claude/skills/agent-reach` 为符号链接 | `Panniantong/Agent-Reach` → `agent_reach/skill/` |
 | opencli CLI | 全局 npm | `@jackwener/opencli` |
 | opencode CLI | `~/.opencode/bin/opencode` | `opencode upgrade --method curl` |
+| omp CLI | `~/.bun/bin/omp` → bun 全局 `@oh-my-pi/pi-coding-agent` | `omp update` |
+| pi CLI | `~/.pi/agent/bin/pi`（`~/.local/bin/pi` 为符号链接） | `pi update` |
 | agent-reach CLI | pipx venv | `agent-reach` PyPI |
 | notebooklm CLI + skill | pipx venv + `~/.claude/skills/notebooklm/` | `teng-lin/notebooklm-py` PyPI |
 | npm 全局包 | `~/.nvm/versions/node/*/lib/node_modules` | `npm update -g` |

@@ -41,9 +41,13 @@ dpkg_owned_paths() {
   dpkg -S "$@" 2>/dev/null | sed -n 's/^[^:]*: //p' | sort -u || true
 }
 
+# 限时跑 --version 取首行原始输出；超时/失败时退出码非零
+version_output() {
+  timeout 5 "$1" --version 2>&1 | head -1
+}
+
 probe_version() {
-  local f="$1"
-  timeout 5 "$f" --version 2>&1 | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "?"
+  version_output "$1" | grep -oE '[0-9]+\.[0-9]+\.[0-9]+' | head -1 || echo "?"
 }
 
 # 已知散装工具的上游：owner/repo 走 gh release；self: <cmd> 走工具自带检查。
@@ -175,6 +179,45 @@ discover() {
   done
 }
 
+# 下载后冒烟测试：官方 release 常在新版 glibc 上构建，本机会因 ABI 不兼容而无法运行
+# （实测 resvg 0.50.0 要求 GLIBC_2.43，本机 2.39）。下载成功 ≠ 可运行，必须实测。
+# 返回 0=可运行，1=不能运行，2=无法验证（包格式或结构未知）
+verify_download() {
+  local file="$1" name="${2:-}" base dir probe="" out rc=2 f
+  case "$file" in
+    *.deb|*.rpm) return 2 ;;  # 包管理器自会校验
+  esac
+  base="${TMPDIR:-$HOME/.cache/tmp}"
+  mkdir -p "$base"
+  dir="$(mktemp -d "$base/dlverify.XXXXXX")" || return 2
+  case "$file" in
+    *.tar.gz|*.tgz) tar -xzf "$file" -C "$dir" 2>/dev/null || true ;;
+    *.tar.xz)       tar -xJf "$file" -C "$dir" 2>/dev/null || true ;;
+    *.zip)          unzip -q "$file" -d "$dir" 2>/dev/null || true ;;
+    *)              # curl 落盘为 0644，复制后补执行位再探测
+                    probe="$dir/$(basename "$file")"
+                    cp -f "$file" "$probe" 2>/dev/null || { rm -rf "$dir"; return 2; }
+                    chmod +x "$probe" ;;
+  esac
+  # 优先验证目标同名文件，避免误选包内辅助程序或共享库
+  if [ -z "$probe" ] && [ -n "$name" ]; then
+    probe=$(find "$dir" -maxdepth 3 -type f -name "$name" -perm -u+x 2>/dev/null | head -1)
+  fi
+  if [ -z "$probe" ]; then
+    while IFS= read -r f; do
+      if is_elf "$f"; then probe="$f"; break; fi
+    done < <(find "$dir" -maxdepth 3 -type f -perm -u+x 2>/dev/null)
+  fi
+  if [ -n "$probe" ] && out=$(version_output "$probe") && [ -n "$out" ]; then
+    echo "可运行性: ✓ $out"
+    rc=0
+  elif [ -n "$probe" ]; then
+    rc=1
+  fi
+  rm -rf "$dir"
+  return "$rc"
+}
+
 download_url() {
   local url="$1" target="${2:-}"
   [ -n "$url" ] || { echo "用法: check-hard-updates.sh --download <url> [目标路径]"; exit 1; }
@@ -216,11 +259,24 @@ download_url() {
   echo "完成: $dest"
   echo ""
 
+  # 目标名用于优先验证主二进制，避免误选包内辅助程序
+  local name=""
+  if [ -n "$target" ]; then name=$(basename "$target"); fi
+
+  # 下载成功不代表能运行：以当前用户身份跑一次 --version 冒烟，把 ABI/架构
+  # 不兼容提前暴露。脚本仍不安装、不 sudo，但会执行下载产物，仅在可信来源使用。
+  local verify_rc=0
+  verify_download "$dest" "$name" || verify_rc=$?
+  if [ "$verify_rc" -eq 1 ]; then
+    echo "⚠️  下载的二进制在本机无法运行（多为 glibc/ABI 不兼容或架构不符）" >&2
+    echo "   可改用源码编译，例如：cargo install <包名> --locked --version <版本>" >&2
+    echo "" >&2
+  fi
+
   # 目标路径决定安装命令：目录可写则免 sudo，否则加 sudo
-  local dir="" name="" sudo=""
+  local dir="" sudo=""
   if [ -n "$target" ]; then
     dir=$(dirname "$target")
-    name=$(basename "$target")
     [ -w "$dir" ] || sudo="sudo "
   fi
 

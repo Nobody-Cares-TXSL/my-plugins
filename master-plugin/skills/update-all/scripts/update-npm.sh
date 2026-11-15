@@ -13,6 +13,20 @@ LOCKED_TOOLS="npm pnpm corepack"
 
 NPM_ROOT="$(npm root -g)"
 
+# npm 11 起 install scripts 默认被沙箱拦截（allow-scripts），postinstall 不再自动执行。
+# 下列包依赖 postinstall/install：opencli 下载 adapters，pnpm/bun/corepack 生成 shim，
+# better-sqlite3/koffi/node-pty 编译原生模块。不放行会留下"包在但不可用"的中间态。
+ALLOW_SCRIPTS="@jackwener/opencli,pnpm,corepack,bun,core-js,better-sqlite3,@deepseek-ai/dsh-subprocess-local,koffi,node-pty,@google/genai,protobufjs"
+npm_major=$(npm --version 2>/dev/null | cut -d. -f1)
+case "$npm_major" in
+  ''|*[!0-9]*) npm_major=0 ;;
+esac
+# 空数组在 set -u 下按 0 个参数展开，两句调用点共享同一份条件
+NPM_ALLOW=()
+if [ "$npm_major" -ge 11 ]; then
+  NPM_ALLOW=(--allow-scripts="$ALLOW_SCRIPTS")
+fi
+
 # 返回该包版本比较键：major>0 用 major，0.x 用 "0.minor"
 # （0.x 的 minor 变更即破坏性，与 major 同等对待）
 range_of() {
@@ -31,7 +45,10 @@ rc=0
 outdated=$(npm outdated -g 2>/dev/null) || rc=$?
 if [ -n "$outdated" ]; then
   echo "$outdated" | sed 's/^/  /'
-  npm update -g 2>&1
+  if [ "${#NPM_ALLOW[@]}" -gt 0 ]; then
+    echo "  npm $npm_major：显式放行已知包的 install scripts"
+  fi
+  npm update -g "${NPM_ALLOW[@]}" 2>&1
 elif [ "$rc" -eq 0 ]; then
   echo "  ✅ 全部已是最新，跳过 npm update -g"
 else
@@ -52,7 +69,7 @@ for tool in $LOCKED_TOOLS; do
     echo "  ✅ $tool $installed 保持 $key.x"
   else
     echo "  ⚠️  $tool $installed 跨大版本（原 $key.x），钉回"
-    npm install -g "$tool@^$key" 2>&1 | tail -3
+    npm install -g "$tool@^$key" "${NPM_ALLOW[@]}" 2>&1 | tail -3
   fi
 done
 
