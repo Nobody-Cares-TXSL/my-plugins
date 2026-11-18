@@ -16,13 +16,17 @@
     ├── tests/                          # 测试
     │   ├── run-all.sh                  #   一次跑全部（mod + Node + Shell）
     │   ├── html-link.test.ts           #   html-link mod 测试
-    │   └── prompt-optimize.test.ts     #   prompt-optimize mod 测试
+    │   ├── prompt-optimize.test.ts     #   prompt-optimize mod 测试
+    │   └── development-flow.test.ts    #   子代理派发和规划提醒测试
     ├── hooks/                          # Claude Code Mod
     │   ├── hooks.json                 #   Mod 入口声明（只指向 register.js）
     │   ├── register.js                #   启动入口：import 各 mod 并调用
     │   ├── prompts.js                 #   Prompt Library 面板
     │   ├── html-link.js               #   会话里的 .html 路径可点，点击开浏览器
     │   ├── prompt-optimize.js         #   输入框上方三档优化草稿按钮，回填不发送
+    │   ├── development-flow.js       #   原生子代理按钮和最终计划提醒
+    │   ├── review-snapshot.js        #   Git 前后快照与审查路径
+    │   ├── subagent-notes/            #   手动维护的角色说明与最终计划要求
     │   └── README.md                  #   mod 说明
     └── skills/                         # 目录型 skills
         ├── explain/SKILL.md            #   代码解释（Claude Code CLI / Codex）
@@ -58,6 +62,7 @@
 | 组件 | 类型 | 说明 |
 |------|------|------|
 | `prompts` | Claude Code mod | `/prompts [关键词]` 浏览文件夹、搜索提示词、预览 frontmatter，并将全文填入输入框，手动发送 |
+| `development-flow` | Claude Code mod | 「探索」「实现」直接把当前文本草稿交给内置子代理；保留原生 Plan Mode，在最终计划落笔前提示主对话读取写作要求 |
 | `explain` | skill | 解释选中的代码，产出 HTML 图解页面：全文引用代码、功能总览、流程/语法/引用三段说明，并核实库函数与相关文件出处；无渲染 CLI 时退化为结构化文本 |
 | `push` | skill | 按约定式提交规范创建提交并推送，兼容 Claude Code CLI 和 Codex |
 | `deep-read` | skill | 智能阅读助手，压缩文本的同时辅助理解 |
