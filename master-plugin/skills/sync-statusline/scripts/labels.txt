@@ -14,10 +14,7 @@
 #       显示文本需人工润色成简短中文。
 
 # --- mods ---
-files	/files [目录|文件]:项目文件浏览器
 md	/md <路径>:md 阅读器
-mission	/mission [who|code]:代理关系图
-radar	/radar:子代理监控
 
 # --- ownmods ---
 prompts	/prompts [关键词]:提示词库
