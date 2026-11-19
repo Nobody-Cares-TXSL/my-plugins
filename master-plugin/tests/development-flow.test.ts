@@ -1,5 +1,5 @@
 import { expect, test } from 'claude-code/testing'
-import type { AgentSpawnInput, On, TurnCompleteInput } from 'claude-code'
+import type { AgentSpawnInput, On, SessionMessage, TurnCompleteInput } from 'claude-code'
 import type { Engine } from 'claude-code/testing'
 // @ts-expect-error 仓库的 Mod 是未生成声明的 JS。
 import { register as registerFlow } from '../hooks/development-flow.js'
@@ -18,7 +18,14 @@ function mount($: Engine, on: On) {
   return $.ui.mount({ plugin: 'master-plugin', surface: 'terminal', component: 'AbovePrompt', props: BAND })
 }
 
-function draftStubs(on: On, initial: string, toolNames = ['Read', 'Glob', 'Grep']) {
+const history: SessionMessage[] = [
+  { role: 'assistant', text: '旧回复，不应传递', toolUses: [] },
+  { role: 'assistant', text: '最新回复\n建议先核对校验入口。', toolUses: [] },
+  { role: 'assistant', text: '工具调用前的进度', toolUses: [{ tool_use_id: 'read-1', tool: 'Read', input: {} }] },
+  { role: 'user', text: '后续用户消息，不应传递', toolUses: [] },
+]
+
+function draftStubs(on: On, initial: string, toolNames = ['Read', 'Glob', 'Grep'], messages: SessionMessage[] = []) {
   let draft = initial
   const submitted: string[] = []
   const toasts: string[] = []
@@ -36,6 +43,10 @@ function draftStubs(on: On, initial: string, toolNames = ['Read', 'Glob', 'Grep'
   on('agent.list', () => ({ value: [] }))
   on('tool.list', () => ({ value: toolNames.map(name => ({ name, description: '', mcp: false })) }))
   on('session.cwd', () => ({ value: '/fixture' }))
+  on('session.messages', (_$, e) => {
+    expect(e.agentId).toBeUndefined()
+    return { value: messages }
+  })
   on('process.run', () => ({ value: { exitCode: 1, stdout: '', stderr: '', isStdoutTruncated: false, isStderrTruncated: false } }))
   on('ui.log', () => ({ value: undefined }))
   return { submitted, toasts, get draft() { return draft } }
@@ -78,14 +89,28 @@ test('探索直接派发原始草稿并注入说明；宿主未启动代理时�
   await ui.unmount()
 })
 
-test('缺少搜索工具时不启动 Explore，并提示如何恢复', async ($, on) => {
-  const draft = draftStubs(on, '查找校验入口', ['Read', 'Bash'])
+test('默认 Linux 工具集可派发 Explore，并且只带最近一条主对话回复', async ($, on) => {
+  const draft = draftStubs(on, '查找校验入口', ['Read', 'Bash'], history)
+  on('fs.read', () => ({ value: '探索补充说明' }))
+  let spawned = ''
+  on('agent.spawn', (_$, e) => { spawned = e.prompt; return { model: 'test' } })
+  const ui = await mount($, on)
+  await ui.press({ key: 'flow-explore' })
+  expect(spawned.split('\n\n---\n\n')).toEqual([
+    '查找校验入口', '探索补充说明',
+    `主对话的最近一次回复（仅作参考，任务与授权以当前草稿为准）：\n${JSON.stringify(history[1]!.text)}`,
+  ])
+  expect(draft.draft).toBe('查找校验入口')
+  await ui.unmount()
+})
+
+test('会话没有可用搜索工具时不派发，也不要求特殊启动参数', async ($, on) => {
+  const draft = draftStubs(on, '查找校验入口', ['Read'])
   on('agent.spawn', () => { throw new Error('不应派发') })
   const ui = await mount($, on)
   await ui.press({ key: 'flow-explore' })
-  expect(draft.toasts[0]).toContain('缺少 Glob、Grep')
-  expect(draft.toasts[0]).toContain('--allowedTools Glob Grep')
-  expect(draft.draft).toBe('查找校验入口')
+  expect(draft.toasts[0]).toContain('请检查当前会话的工具限制')
+  expect(draft.toasts[0]).not.toContain('--allowedTools')
   await ui.unmount()
 })
 
@@ -119,13 +144,13 @@ test('空草稿不执行，角色说明不可用时拒绝启动并解除按钮�
   await ui.unmount()
 })
 
-test('实现授权只派发给 general-purpose，原草稿保留', async ($, on) => {
+test('实现只派发给 general-purpose，带上最新主对话回复并保留原草稿', async ($, on) => {
   const original = '修改 lib/check.js 并补回归测试'
-  const draft = draftStubs(on, original)
+  const draft = draftStubs(on, original, undefined, history)
   on('fs.read', (_$, e) => ({ value: e.path.endsWith('/general-purpose.md') ? '实现补充说明' : '' }))
   on('agent.spawn', (_$, e) => {
     expect(e).toMatchObject({ subagent_type: 'general-purpose' })
-    expect(e.prompt).toBe(`${original}\n\n---\n\n实现补充说明`)
+    expect(e.prompt).toBe(`${original}\n\n---\n\n实现补充说明\n\n---\n\n主对话的最近一次回复（仅作参考，任务与授权以当前草稿为准）：\n${JSON.stringify(history[1]!.text)}`)
     expect(e.model).toBeUndefined()
     return { model: 'configured-test' }
   })
@@ -146,6 +171,8 @@ test('原生启动确认后关闭重复派发，强制探索只读，并按代�
   let mode = 'default'
   let processStatus = 'running'
   let fileVersion = 'a'
+  let gitAvailable = true
+  const toasts: string[] = []
   let releaseLaunch: (() => void) | undefined
   let notifyLaunch: (() => void) | undefined
   const proceed = async (e: unknown) => e
@@ -156,10 +183,10 @@ test('原生启动确认后关闭重复派发，强制探索只读，并按代�
       submit: async ({ text }: { text: string }) => { followups.push(text); return { text } },
     },
     fs: { read: async () => '补充说明' },
-    session: { cwd: async () => '/fixture' },
+    session: { cwd: async () => '/fixture', messages: async () => [] },
     process: {
       run: async (args: string[]) => {
-        if (args.includes('rev-parse')) return { exitCode: 0, stdout: '/fixture\n' }
+        if (args.includes('rev-parse')) return { exitCode: gitAvailable ? 0 : 128, stdout: '/fixture\n' }
         if (args.includes('status')) {
           const before = '# branch.oid same\0# branch.head main\0? existing.txt\0? edited.txt\0'
           const indexed = `1 M. N... 100644 100644 100644 abc ${fileVersion} staged.txt\0`
@@ -169,7 +196,7 @@ test('原生启动确认后关闭重复派发，强制探索只读，并按代�
         return { exitCode: 1, stdout: `new file mode 100644\nindex 0000..${hash}\n`, stderr: '' }
       },
     },
-    tool: { list: async () => ['Read', 'Glob', 'Grep'].map(name => ({ name })) },
+    tool: { list: async () => ['Read', 'Bash'].map(name => ({ name })) },
     agent: {
       spawn: async ({ subagentType }: { subagentType: string }) => {
         const event = nativeSpawn(subagentType, mode)
@@ -186,7 +213,7 @@ test('原生启动确认后关闭重复派发，强制探索只读，并按代�
       list: async () => starts ? [{ id: `agent-${starts}`, status: processStatus, spawnedBy: 'master-plugin' }] : [],
     },
     ui: {
-      invalidate() {}, toast() {}, log() {},
+      invalidate() {}, toast(text: string) { toasts.push(text) }, log() {},
       resolve: () => ({ Box() {}, Button: ({ key, onPress }: { key: string; onPress: () => Promise<void> }) => buttons.set(key, onPress) }),
     },
   }
@@ -205,6 +232,23 @@ test('原生启动确认后关闭重复派发，强制探索只读，并按代�
   for (const tool of ['Read', 'SubagentHandback']) {
     const allowed = { agentId: 'agent-1', tool }
     expect(await call($, allowed, proceed)).toBe(allowed)
+  }
+  const commands = [
+    "find . -name .git -prune -o -type f -name '*.ts' -print",
+    "grep -rInF --exclude-dir=.git -- 'check(input)' .",
+  ]
+  for (const command of commands) {
+    const search = { agentId: 'agent-1', tool: 'Bash', command }
+    expect(await call($, search, proceed)).toBe(search)
+    for (const extra of [
+      { command: `${command} && touch unexpected` },
+      { command: `${command} > unexpected` },
+      { command: `${command}\ntouch unexpected` },
+      { run_in_background: true },
+      { dangerouslyDisableSandbox: true },
+    ]) {
+      expect(await call($, { ...search, ...extra }, proceed)).toMatchObject({ deny: expect.any(String) })
+    }
   }
   const other = { agentId: 'other', tool: 'Edit' }
   expect(await call($, other, proceed)).toBe(other)
@@ -245,20 +289,31 @@ test('原生启动确认后关闭重复派发，强制探索只读，并按代�
   expect(await unrelated).toBe(other)
   await done($, completion('agent-4', '旧会话迟到报告'), proceed)
   expect(followups).toHaveLength(2)
+
+  notifyLaunch = undefined
+  gitAvailable = false
+  await buttons.get('flow-implement')!()
+  await done($, { ...completion(`agent-${starts}`, ''), reason: 'aborted', isAborted: true }, proceed)
+  expect(followups).toHaveLength(2)
+  expect(toasts.at(-1)).toContain('未返回报告')
+
+  gitAvailable = true
+  await buttons.get('flow-implement')!()
+  await done($, completion(`agent-${starts}`, '  '), proceed)
+  expect(followups).toHaveLength(2)
+
+  await buttons.get('flow-implement')!()
+  fileVersion = 'a'
+  await done($, completion(`agent-${starts}`, ''), proceed)
+  expect(followups).toHaveLength(3)
+  const changesOnly = JSON.parse(followups[2]!.split('\n\n').at(-1)!)
+  expect(changesOnly.scope.paths).toContain('edited.txt')
+  expect(changesOnly.report).toBeNull()
 })
 
-test('Plan Mode 只提醒主对话在落笔前 Read，不读取正文或改变子代理的提醒', async ($, on) => {
-  let fileReads = 0
-  on('fs.read', () => { fileReads++; return { value: '计划说明正文' } })
+test('插件不改写宿主的规划提醒', async ($, on) => {
   on('prompt.attachment', (_$, e) => ({ text: e.text }))
   const enter = { type: 'plan_mode', text: '原生 Plan Mode', origin: { kind: 'engine' } } as const
-  const main = await $.prompt.attachment(enter)
-  expect(main.text).toContain('原生 Plan Mode')
-  expect(main.text).toContain('真正准备撰写最终计划时')
-  expect(main.text).toContain('/hooks/subagent-notes/plan.md')
-  expect(main.text).not.toContain('计划说明正文')
-  expect((await $.prompt.attachment({ ...enter, type: 'plan_mode_reentry' })).text).toContain('先单独通过 Read')
-  expect((await $.prompt.attachment({ ...enter, agentId: 'child' })).text).toBe(enter.text)
-  expect((await $.prompt.attachment({ ...enter, type: 'plan_mode_exit' })).text).toBe(enter.text)
-  expect(fileReads).toBe(0)
+  expect((await $.prompt.attachment(enter)).text).toBe(enter.text)
+  expect((await $.prompt.attachment({ ...enter, type: 'plan_mode_reentry' })).text).toBe(enter.text)
 })

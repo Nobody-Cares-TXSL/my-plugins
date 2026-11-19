@@ -11,7 +11,7 @@ hooks/
 ├── prompts.js          # 本地 Prompt Library
 ├── html-link.js        # HTML 文件路径链接
 ├── prompt-optimize.js  # 输入框草稿优化
-├── development-flow.js # 草稿直接派发、原生 Plan Mode 提醒
+├── development-flow.js # 草稿直接派发与子代理报告回交
 ├── review-snapshot.js  # Git 前后快照与审查路径
 ├── subagent-notes/     # 手动维护 Explore、General-purpose 和最终计划说明
 └── README.md           # 本文
@@ -33,7 +33,7 @@ hooks/
 | `prompts.js` | `session.start`、`command.run{command=prompts}`、`ui.render{component=Pane}` | Terminal、Desktop 显示面板；其他 surface 返回文本 | 搜索、浏览本地 Markdown 提示词并填入输入框 |
 | `html-link.js` | `ui.render{component=AssistantMessage}` | 仅 Terminal 全屏消息视图 | 将存在的本地 HTML 文件路径显示为可点击链接 |
 | `prompt-optimize.js` | `ui.render{component=AbovePrompt}`、`prompt.edit`、`prompt.change` | Terminal、Desktop | 按推理档位重构当前草稿，只回填、不发送 |
-| `development-flow.js` | `ui.render{component=AbovePrompt}`、`agent.spawn`、`tool.call`、`turn.complete`、`session.end`、`prompt.attachment{type=plan_mode\|plan_mode_reentry}` | 按钮仅 Terminal、Desktop 的主对话；Plan Mode 提醒仅主对话 | 直接派发当前草稿给内置子代理，交回结果；最终计划落笔前引导主对话读取写作说明 |
+| `development-flow.js` | `ui.render{component=AbovePrompt}`、`agent.spawn`、`tool.call`、`turn.complete`、`session.end` | 按钮仅 Terminal、Desktop 的主对话 | 直接派发当前草稿给内置子代理，交回结果并审查实际改动 |
 
 这里的运行范围是各模块当前代码中的实际判断，不代表所有 Claude Code surface 都支持相同的界面能力。
 
@@ -159,20 +159,22 @@ hooks/
 
 **手动验收**：让助手在同一条回复中同时输出一个存在的 `.md` 路径和一个存在的 `.html` 路径，确认 mdview 的 Markdown 展示正常，且下方仍出现 HTML 链接。单独含 HTML 路径的消息不足以覆盖这个顺序冲突场景。
 
-## 6. development-flow：原生子代理与最终计划
+## 6. development-flow：原生子代理派发与回交
 
 在主对话的输入框写好任务后，可以直接点上方右侧按钮，无需 Enter，也不会改写或清空草稿。
 
-- **探索**：直接启动内置 `Explore`。将点击时的草稿和 [探索补充说明](subagent-notes/explore.md) 送给该代理。除原生 `SubagentHandback` 回交外，只允许 `Read`、`Glob`、`Grep`。若启动时工具不可用，先提示并停止派发。Linux 等系统可用 `claude --plugin-dir ./master-plugin --allowedTools Glob Grep` 加载工作副本并启用搜索工具；不要用 `--tools Read,Glob,Grep` 取代整套会话工具，否则会影响实现。完成后发起主对话汇总。
+- **探索**：直接启动内置 `Explore`，附上 [探索补充说明](subagent-notes/explore.md)。优先使用 `Read`、`Glob`、`Grep`；缺少 `Glob` 或 `Grep` 时，用宿主已有的 `Bash` 执行约定格式的只读 `find` 或 `grep`，无需额外启动参数。插件仍拒绝其他 Shell 命令，保留原生 `SubagentHandback` 回交。宿主禁用了所需的读取或搜索工具时，提示并停止派发。完成后发起主对话汇总。
 - **实现（可写）**：直接启动内置 `general-purpose`，将草稿和 [实现补充说明](subagent-notes/general-purpose.md) 送给该代理。点击委派草稿明确写出的实现范围，仍服从宿主权限；Plan Mode 下拒绝启动实现。完成时比较 Git 状态和内容指纹，再让主对话只审查变化路径，包括已暂存、未暂存和未跟踪文件。审查不自动修复，由主对话遵循任务指令，未额外限制主对话工具。
 
-补充说明随插件分发，每次点击读取插件所加载版本的文件正文。按钮只传草稿文本，不传粘贴的图片、附件或整个父会话。普通原生代理派发不受按钮的说明影响；不指定模型，沿用 `CLAUDE_CODE_SUBAGENT_MODEL` 等宿主配置。一次只允许一个按钮派发的任务运行。操作会使用对应的模型额度，汇总或审查还会占一轮主对话。任务本身可在原生任务视图查看。
+补充说明随插件分发，每次点击读取插件所加载版本的文件正文。两个按钮均传递当前文本草稿、角色说明和主对话最近一条可见回复；没有回复时只传前两项。回复仅作参考，不扩大草稿授权。不传更早的消息、工具调用及结果、图片或附件。普通原生代理派发不受按钮的说明影响；不指定模型，沿用 `CLAUDE_CODE_SUBAGENT_MODEL` 等宿主配置。一次只允许一个按钮派发的任务运行。操作会使用对应的模型额度，汇总或审查还会占一轮主对话。任务本身可在原生任务视图查看。
 
 本机 2.1.310 通过 `turn.complete` 的 `agentId` 关联宿主交付的报告，不从子代理 transcript 旁路读取，也不注册该版本没有的 `agent.report`。如果结束事件未到，下次点击根据宿主任务状态释放已停止的旧任务；切换会话后不会把迟到的结果转交到新会话。
 
 Git 快照以当前工作树为准。不在 Git 仓库、快照失败、HEAD 或分支变化、未合并条目、子模块或超出 100 个变化路径时，不自动确定审查范围，提示需要手动检查。快照能识别期间变化的路径，不能区分同一路径内原有内容或期间并发编辑的作者；忽略文件不纳入自动范围。
 
-`/plan` 和 `Shift+Tab` 保持原生流程。Mod 在主对话的规划提醒中加一条短指令，要求主对话完成调研、准备落笔时先 `Read` [最终实施计划说明](subagent-notes/plan.md)，再撰写最终计划。进入 Plan Mode 时不加载正文，也不向 `Explore` 或 `Plan` 注入正文。Claude Code 2.1.310 没有可识别落笔时刻的事件，因此执行顺序由主对话遵循，不是权限门禁。
+没有报告、也没有可审查的 Git 变化时，只显示提示，不开启新的主对话回合。即使没有报告，只要快照确认有变化，仍可审查实际 diff。
+
+插件不依赖或改写 `/plan` 和 `Shift+Tab` 的原生规划流程。
 
 ## 7. 测试与验证
 
@@ -191,12 +193,12 @@ claude --plugin-dir ./master-plugin
 
 ### 当前自动化测试覆盖
 
-目前有三个自动化测试文件，共 **25 项测试**：
+目前有三个自动化测试文件，共 **26 项测试**：
 
 - `tests/prompt-optimize.test.ts`（15 项）：三档按钮、当前会话模型、effort 与超时配置、跨档位比较、手动还原、输出约束、编辑冲突保护、取消与失败状态，以及不自动发送。
 - `tests/html-link.test.ts`（3 项）：同名不同路径分别展示、同一文件的重复锚点去重、重复渲染复用缓存、`session.end` 清理缓存，以及超过 1024 条时淘汰最久未使用的文件状态记录。
 
-- `tests/development-flow.test.ts`（7 项）：原始草稿与角色说明、模型不覆盖、搜索工具预检、启动失败、原生报告回交与只读拦截、任务丢失及会话切换恢复、审查路径和 Plan Mode 阶段提醒。未运行真实子代理模型。
+- `tests/development-flow.test.ts`（8 项）：草稿、角色说明和最近回复、模型不覆盖、默认工具集派发与只读搜索限制、启动失败、报告回交、会话切换恢复、Git 审查范围、空报告处理，以及不改写宿主规划提醒。未运行真实子代理模型。
 
 **prompts 目前没有对应的自动化测试文件。** html-link 的自动化测试也不覆盖真实浏览器启动、点击后的桌面行为或与 mdview 的跨插件顺序；这些仍需手动验收。`claude plugin validate` 通过不代表这些界面和集成行为已经验证。
 
@@ -206,7 +208,7 @@ claude --plugin-dir ./master-plugin
 - **prompt-optimize**：检查三个档位、跨档位比较、还原、编辑冲突保护、失败保留原稿，以及 Enter 不触发优化。
 - **html-link**：检查裸路径、行内代码、Markdown 链接目标、代码围栏排除、文件不存在、点击打开，以及与 mdview 的混合消息场景。
 
-- **development-flow**：在无敏感内容的测试项目中，填草稿并点「探索」，确认原生任务出现、草稿保留、汇总回到主对话；再通过 `/plan` 和 `Shift+Tab` 分别进入规划，检查仅在落笔前出现读取 `plan.md` 的工具调用。Plan Mode 下尝试「实现（可写）」应被拒绝，退出后用一个小改动验证实现及主对话 diff 审查。
+- **development-flow**：在默认工具集下先获得一条主对话回复，再填草稿点「探索」，确认原生任务收到回复和草稿、能执行搜索且草稿保留；再在普通模式用一个小改动验证「实现（可写）」及主对话 diff 审查。中断无改动的实现任务时，只应显示提示。
 
 ## 8. 维护约定
 
