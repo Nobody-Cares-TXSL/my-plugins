@@ -14,9 +14,9 @@ LOCKED_TOOLS="npm pnpm corepack"
 NPM_ROOT="$(npm root -g)"
 
 # npm 11 起 install scripts 默认被沙箱拦截（allow-scripts），postinstall 不再自动执行。
-# 下列包依赖 postinstall/install：opencli 下载 adapters，pnpm/bun/corepack 生成 shim，
+# 下列包依赖 postinstall/install：pnpm/bun/corepack 生成 shim，
 # better-sqlite3/koffi/node-pty 编译原生模块。不放行会留下"包在但不可用"的中间态。
-ALLOW_SCRIPTS="@jackwener/opencli,pnpm,corepack,bun,core-js,better-sqlite3,@deepseek-ai/dsh-subprocess-local,koffi,node-pty,@google/genai,protobufjs"
+ALLOW_SCRIPTS="pnpm,corepack,bun,core-js,better-sqlite3,@deepseek-ai/dsh-subprocess-local,koffi,node-pty,@google/genai,protobufjs"
 npm_major=$(npm --version 2>/dev/null | cut -d. -f1)
 case "$npm_major" in
   ''|*[!0-9]*) npm_major=0 ;;

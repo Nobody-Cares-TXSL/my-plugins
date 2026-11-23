@@ -89,29 +89,11 @@ for c in omp pi; do
   echo ""
 done
 
-# opencli CLI + 站点/命令统计
-echo "--- opencli CLI ---"
-if command -v opencli &>/dev/null; then
-  opencli_ver=$(opencli --version 2>&1 | head -1)
-  echo "  $opencli_ver"
-  # 2.x 输出 JSON，1.x 输出人类可读统计行；两种都取，取不到不致命
-  opencli_sites=$(opencli --help 2>&1 | grep -oE 'Site adapters \([0-9]+\)' | head -1 || true)
-  opencli_cmds=$(opencli list --limit 1 -f json 2>&1 | grep -oE '"total":[0-9]+' | head -1 | cut -d: -f2 || true)
-  echo "  ${opencli_sites:-站点数未知}${opencli_cmds:+, ${opencli_cmds} commands}"
-else
-  echo "  not installed"
-fi
-echo ""
-
-# Agent skills（~/.agents/skills/ 是通用目录，含 opencli 生态与独立来源的 skill）
+# Agent skills（~/.agents/skills/ 通用目录）
 echo "--- Agent Skills (~/.agents/skills) ---"
 if [ -d "$AGENT_SKILLS" ]; then
-  # opencli 生态：opencli-* 前缀 + smart-search（frontmatter 声明"基于 opencli 命令"）
-  echo "  [opencli 生态]"
-  # grep 无匹配在 set -euo pipefail 下会终止整个快照，必须兜底
-  ls -1 "$AGENT_SKILLS" 2>/dev/null | grep -E '^(opencli-|smart-search$)' | sed 's/^/    /' || true
-  echo "  [独立]"
-  ls -1 "$AGENT_SKILLS" 2>/dev/null | grep -vE '^(opencli-|smart-search$)' | sed 's/^/    /' || true
+  # grep/ls 无匹配在 set -euo pipefail 下会终止整个快照，必须兜底
+  ls -1 "$AGENT_SKILLS" 2>/dev/null | sed 's/^/    /' || true
 else
   echo "  not installed"
 fi
