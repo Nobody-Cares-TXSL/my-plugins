@@ -57,6 +57,7 @@ claude plugin update master-plugin
 | opencode CLI | `~/.opencode/bin/opencode` | `opencode upgrade --method curl` |
 | omp CLI | `~/.bun/bin/omp`（bun 全局 `@oh-my-pi/pi-coding-agent`） | `omp update` |
 | pi CLI | `~/.pi/agent/bin/pi`（`~/.local/bin/pi` 为符号链接） | `pi update` |
+| OpenDesign | `/home/duan/Project/open-design`（生产 daemon `:7456`，tmux `opendesign-prod`） | `git pull` + `pnpm --filter @open-design/{daemon,web} build` |
 | npm 全局包 | `~/.nvm/versions/node/*/lib/node_modules` | `npm update -g`（npm/pnpm/corepack 锁定大版本） |
 | pipx 包 | `~/.local/share/pipx/venvs` | `pipx upgrade-all` |
 | uv tool 包 | `~/.local/share/uv/tools/`（命令软链在 `~/.local/bin/`） | `uv tool upgrade --all` |

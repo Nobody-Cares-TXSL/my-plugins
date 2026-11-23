@@ -23,6 +23,7 @@ allowed-tools: Bash Read Edit Write
 | `opencode` | `update-opencode.sh` | opencode CLI 二进制 |
 | `omp` | `update-omp.sh` | omp（`@oh-my-pi/pi-coding-agent`，bun 全局，自更新） |
 | `pi` | `update-pi.sh` | pi coding agent（自更新） |
+| `opendesign` | `update-opendesign.sh` | OpenDesign 源码更新 + 生产构建/按需重启 |
 | `agent-reach` | `update-agent-reach.sh` | agent-reach CLI + skill |
 | `notebooklm` | `update-notebooklm.sh` | notebooklm CLI + skill |
 | `skills` | `update-agent-skills.sh` | `npx skills` 管理的 `~/.agents/skills` 技能 |
@@ -48,9 +49,10 @@ allowed-tools: Bash Read Edit Write
 9. **agent-reach** — update-agent-reach.sh（pipx 已由前面的 pipx 步骤覆盖；此处重点是 `update --sync-only` 刷新 skill）
 10. **notebooklm** — update-notebooklm.sh（同上，重点是 `notebooklm skill install`）
 11. **npx skills 管理的技能** — update-agent-skills.sh（`~/.agents/skills`）
-12. **散装二进制检查** — check-hard-updates.sh（只读扫描 + 查最新版 + AskUserQuestion 让用户选 + 下载到 ~/下载，**由用户手动安装**）
-13. **版本快照（更新后）+ 对比** — snapshot.sh after，输出变更摘要
-14. **更新 Obsidian 文档** — README.md
+12. **OpenDesign** — update-opendesign.sh（git pull → 按需装依赖 → 生产构建 → 仅在原本运行时重启 → 健康验证）
+13. **散装二进制检查** — check-hard-updates.sh（只读扫描 + 查最新版 + AskUserQuestion 让用户选 + 下载到 ~/下载，**由用户手动安装**）
+14. **版本快照（更新后）+ 对比** — snapshot.sh after，输出变更摘要
+15. **更新 Obsidian 文档** — README.md
 
 完成后输出 reload 提示。
 
@@ -68,6 +70,7 @@ allowed-tools: Bash Read Edit Write
 - `update-opencode.sh` — opencode CLI 二进制更新
 - `update-omp.sh` — omp（bun 全局包 `@oh-my-pi/pi-coding-agent`）
 - `update-pi.sh` — pi coding agent
+- `update-opendesign.sh` — OpenDesign 源码更新 + 生产构建/按需重启
 - `check-hard-updates.sh` — 发现散装二进制（apt/npm/pipx 管不到的），只读检查 + 通用下载器；**不自动安装**
 
 ### 环境注意事项（Claude Code Bash tool）
@@ -167,6 +170,17 @@ bash ${CLAUDE_SKILL_DIR}/scripts/update-agent-skills.sh
 > 脚本用 `npx -y skills@latest`，不依赖全局安装；`~/.agents/.skill-lock.json` 不存在时直接跳过（退出 0），不中断全量流程。
 > **并发从源头限制**：上游默认 4 路并发 clone（`DEFAULT_FETCH_CONCURRENCY`），走代理时并发握手易被掐断，报 `gnutls_handshake() failed`。脚本设 `SKILLS_CLONE_CONCURRENCY=2`（上游 `fetchConcurrency()` 读取，未写入 `--help`）；首轮失败时降为单路整轮重跑一次。update 是幂等的，已最新的技能会被跳过，无需解析输出定位具体哪一项。
 
+#### OpenDesign
+
+```bash
+bash ${CLAUDE_SKILL_DIR}/scripts/update-opendesign.sh
+```
+
+> 维护的是本机生产实例，不是开发源码。脚本内建安全闸门：工作区不干净 / 无上游 / `git pull --ff-only` 失败 / 构建失败都会停下报告，**不** stash/reset/clean/强制合并。
+> 依赖仅在 `package.json`、`pnpm-lock.yaml`、`pnpm-workspace.yaml`、`.npmrc`、`patches/`、`scripts/postinstall.mjs` 变更时才 `pnpm install --frozen-lockfile`；lockfile 与声明不一致会停下而非改锁文件。
+> **重启策略**：仅当更新前服务在运行时才重启（tmux 会话 `opendesign-prod`，node 用绝对路径）；原本未运行则只构建、不拉起。启动需 15–25s 才就绪，脚本最多等约 40s 再判定健康。
+> 遇 `node:1: command not found: _nvm_lazy_run` 说明命中了 `~/.zshrc` 的懒加载坏函数：加 nvm node bin 到 PATH 并用 `env` 调用，不要 `nvm use` / 重装。不要把 `pnpm tools-dev` 开发模式当成生产健康检查。
+
 #### 散装二进制检查
 
 ```bash
@@ -257,4 +271,5 @@ bash ${CLAUDE_SKILL_DIR}/scripts/snapshot.sh after
 | npm 全局包 | `~/.nvm/versions/node/*/lib/node_modules` | `npm update -g` |
 | pipx CLI | `~/.local/share/pipx/venvs/` | `pipx upgrade-all` |
 | uv tool CLI | `~/.local/share/uv/tools/`（命令软链在 `~/.local/bin/`） | `uv tool upgrade --all` |
+| OpenDesign | `/home/duan/Project/open-design`（生产 daemon `:7456`，tmux 会话 `opendesign-prod`） | `git pull` + `pnpm --filter @open-design/{daemon,web} build` |
 | cargo 安装来源 | `~/.cargo/.crates.toml` | 判定 `registry+`（crates.io）还是 `path+`（本地源码） |

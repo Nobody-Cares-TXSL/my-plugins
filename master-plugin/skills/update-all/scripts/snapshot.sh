@@ -181,6 +181,18 @@ if command -v uv &>/dev/null; then
 else
   echo "  not installed"
 fi
+echo ""
+
+# OpenDesign 源码仓库（仅记 SHA + 上游，供更新前后对比）
+echo "--- OpenDesign ---"
+OD_REPO="$HOME/Project/open-design"
+if [ -d "$OD_REPO/.git" ]; then
+  od_sha=$(git -C "$OD_REPO" rev-parse --short HEAD 2>/dev/null || echo '?')
+  od_up=$(git -C "$OD_REPO" rev-parse --abbrev-ref --symbolic-full-name '@{upstream}' 2>/dev/null || echo 'no-upstream')
+  echo "  $od_sha ($od_up)"
+else
+  echo "  not installed"
+fi
 
 echo ""
 echo "=== 快照结束 ($LABEL) ==="
